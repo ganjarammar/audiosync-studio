@@ -105,10 +105,10 @@ export function CaptionDisplay({ sentences, currentTime }: CaptionDisplayProps) 
             <div
               key={`${originalIndex}-${sentence.startTime}`}
               className={cn(
-                "text-center leading-relaxed transition-all duration-700 ease-in-out",
-                isCurrent && "text-2xl md:text-4xl",
-                isPastSentence && "text-base md:text-lg opacity-40",
-                !isCurrent && !isPastSentence && "text-base md:text-lg opacity-50"
+                "text-center text-xl md:text-2xl leading-relaxed transition-all duration-700 ease-in-out origin-center",
+                isCurrent && "scale-125 opacity-100",
+                isPastSentence && "scale-90 opacity-40",
+                !isCurrent && !isPastSentence && "scale-90 opacity-50"
               )}
             >
               {sentence.words.map((word, wordIdx) => {
