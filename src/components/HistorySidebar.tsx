@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { History, Play, Trash2, Clock, Music } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -9,6 +9,16 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useHistory, LoadedProject } from "@/hooks/useHistory.ts";
@@ -22,6 +32,7 @@ interface HistorySidebarProps {
 
 export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySidebarProps) {
   const { projects, isLoading, refreshProjects, loadProject, removeProject } = useHistory();
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -37,9 +48,16 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
     }
   };
 
-  const handleDelete = async (e: React.MouseEvent, projectId: string) => {
+  const handleDeleteClick = (e: React.MouseEvent, project: Project) => {
     e.stopPropagation();
-    await removeProject(projectId);
+    setProjectToDelete(project);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (projectToDelete) {
+      await removeProject(projectToDelete.id);
+      setProjectToDelete(null);
+    }
   };
 
   return (
@@ -117,7 +135,7 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-destructive hover:bg-destructive/20"
-                      onClick={(e) => handleDelete(e, project.id)}
+                      onClick={(e) => handleDeleteClick(e, project)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -127,6 +145,26 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
             </div>
           )}
         </ScrollArea>
+
+        <AlertDialog open={!!projectToDelete} onOpenChange={(open) => !open && setProjectToDelete(null)}>
+          <AlertDialogContent className="glass border-border/50">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Project</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete "{projectToDelete?.name}"? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirmDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </SheetContent>
     </Sheet>
   );
