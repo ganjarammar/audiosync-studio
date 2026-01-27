@@ -8,6 +8,7 @@ import { ThemeToggle, toggleTheme } from "@/components/ThemeToggle";
 import { HistorySidebar } from "@/components/HistorySidebar";
 import { VocabularyLibrary } from "@/components/VocabularyLibrary";
 import { ScriptSearch } from "@/components/ScriptSearch";
+import { UpdateButton } from "@/components/UpdateButton";
 import { useProject } from "@/hooks/useProject";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { Button } from "@/components/ui/button";
@@ -114,6 +115,7 @@ const Index = () => {
                 onOpenChange={setSearchOpen}
               />
             )}
+            <UpdateButton />
             <ColorPicker />
             <ThemeToggle />
             <TooltipProvider>
