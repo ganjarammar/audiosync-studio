@@ -31,4 +31,5 @@ export interface Project {
   audioId: string;
   scriptId: string;
   createdAt: number;
+  lastPlayedAt?: number;
 }
