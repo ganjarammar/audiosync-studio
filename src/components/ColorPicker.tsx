@@ -51,9 +51,9 @@ export function ColorPicker() {
         <Button
           variant="ghost"
           size="icon"
-          className="relative h-9 w-9 rounded-full"
+          className="relative h-9 w-9 rounded-full hover:bg-muted"
         >
-          <Palette className="h-4 w-4" />
+          <Palette className="h-4 w-4 text-foreground" />
           <span
             className="absolute bottom-1 right-1 h-2 w-2 rounded-full ring-1 ring-background"
             style={{ backgroundColor: currentColor?.preview }}
