@@ -31,22 +31,24 @@ function WordHighlight({ word, isActive, isPast, currentTime }: WordHighlightPro
         isActive ? "px-4 scale-110" : "px-1"
       )}
     >
-      <span
-        className={cn(
-          "relative z-10 transition-all duration-150",
-          isActive && "text-primary glow-text font-semibold",
-          isPast && "text-muted-foreground",
-          !isActive && !isPast && "text-foreground/70"
-        )}
-      >
-        {word.text}
-      </span>
-      {isActive && (
+      <span className="relative">
         <span
-          className="absolute bottom-0 left-0 h-0.5 rounded-full bg-primary transition-all duration-100"
-          style={{ width: `${progress * 100}%` }}
-        />
-      )}
+          className={cn(
+            "relative z-10 transition-all duration-150",
+            isActive && "text-primary glow-text font-semibold",
+            isPast && "text-muted-foreground",
+            !isActive && !isPast && "text-foreground/70"
+          )}
+        >
+          {word.text}
+        </span>
+        {isActive && (
+          <span
+            className="absolute bottom-0 left-0 h-0.5 rounded-full bg-primary transition-all duration-100"
+            style={{ width: `${progress * 100}%` }}
+          />
+        )}
+      </span>
     </span>
   );
 }
