@@ -11,6 +11,8 @@ export function useProject() {
   const [isLoading, setIsLoading] = useState(false);
   const [audioId, setAudioId] = useState<string | null>(null);
   const [scriptId, setScriptId] = useState<string | null>(null);
+  const [isProcessed, setIsProcessed] = useState(false);
+  const [pendingScriptContent, setPendingScriptContent] = useState<string | null>(null);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -72,12 +74,25 @@ export function useProject() {
     setIsLoading(true);
     try {
       const content = await file.text();
-      const parsedSentences = parseScript(content);
+      setPendingScriptContent(content);
+      setScriptFile(file);
+      setIsProcessed(false);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const processFiles = useCallback(async () => {
+    if (!pendingScriptContent || !audioFile) return;
+    
+    setIsLoading(true);
+    try {
+      const parsedSentences = parseScript(pendingScriptContent);
 
       const id = crypto.randomUUID();
       const scriptData: Script = {
         id,
-        name: file.name,
+        name: scriptFile?.name || "script.txt",
         sentences: parsedSentences,
         createdAt: Date.now(),
       };
@@ -86,12 +101,14 @@ export function useProject() {
       localStorage.setItem("currentScriptId", id);
 
       setSentences(parsedSentences);
-      setScriptFile(file);
       setScriptId(id);
+      setIsProcessed(true);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [pendingScriptContent, audioFile, scriptFile?.name]);
+
+  const canProcess = audioFile !== null && scriptFile !== null && !isProcessed;
 
   return {
     audioFile,
@@ -99,8 +116,11 @@ export function useProject() {
     audioUrl,
     sentences,
     isLoading,
+    isProcessed,
+    canProcess,
     handleAudioUpload,
     handleScriptUpload,
+    processFiles,
   };
 }
 

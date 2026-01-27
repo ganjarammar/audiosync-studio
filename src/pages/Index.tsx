@@ -1,10 +1,11 @@
 import { useState, useCallback } from "react";
-import { Mic, FileText, Info } from "lucide-react";
+import { Mic, FileText, Info, Play } from "lucide-react";
 import { FileUploader } from "@/components/FileUploader";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { CaptionDisplay } from "@/components/CaptionDisplay";
 import { useProject } from "@/hooks/useProject";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const {
@@ -13,8 +14,11 @@ const Index = () => {
     audioUrl,
     sentences,
     isLoading,
+    isProcessed,
+    canProcess,
     handleAudioUpload,
     handleScriptUpload,
+    processFiles,
   } = useProject();
 
   const [currentTime, setCurrentTime] = useState(0);
@@ -28,7 +32,7 @@ const Index = () => {
     setDuration(dur);
   }, []);
 
-  const isReady = audioUrl && sentences.length > 0;
+  const isReady = audioUrl && sentences.length > 0 && isProcessed;
 
   return (
     <div className="min-h-screen bg-background">
@@ -73,6 +77,20 @@ const Index = () => {
           </AlertDescription>
         </Alert>
 
+        {/* Process Button */}
+        {canProcess && (
+          <div className="flex justify-center">
+            <Button
+              size="lg"
+              onClick={processFiles}
+              disabled={isLoading}
+              className="gap-2"
+            >
+              <Play className="h-5 w-5" />
+              Generate Preview
+            </Button>
+          </div>
+        )}
         {/* Preview Section */}
         {isReady && (
           <section className="space-y-6">
