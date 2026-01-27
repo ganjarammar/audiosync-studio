@@ -84,14 +84,14 @@ export function CaptionDisplay({ sentences, currentTime }: CaptionDisplayProps) 
 
   if (sentences.length === 0) {
     return (
-      <div className="flex min-h-[300px] items-center justify-center rounded-2xl glass p-12">
+      <div className="flex h-[300px] items-center justify-center rounded-2xl glass p-12">
         <p className="text-muted-foreground">Upload a script file to see captions</p>
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-[300px] overflow-hidden rounded-2xl glass p-8 md:p-12">
+    <div className="relative h-[300px] overflow-hidden rounded-2xl glass p-8 md:p-12">
       {/* Gradient overlays for smooth transitions */}
       <div className="pointer-events-none absolute left-0 right-0 top-0 h-12 bg-gradient-to-b from-card/80 to-transparent z-10" />
       <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card/80 to-transparent z-10" />
