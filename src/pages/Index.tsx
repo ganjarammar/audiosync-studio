@@ -3,6 +3,7 @@ import { Mic, Play, HelpCircle } from "lucide-react";
 import { FileUploader } from "@/components/FileUploader";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { CaptionDisplay } from "@/components/CaptionDisplay";
+import { ColorPicker } from "@/components/ColorPicker";
 import { useProject } from "@/hooks/useProject";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,22 +52,25 @@ const Index = () => {
             <span className="text-lg font-semibold tracking-tight">PodSync</span>
           </div>
           
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                  <HelpCircle className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-xs">
-                <p className="text-sm font-medium mb-2">Script Format</p>
-                <code className="block text-xs opacity-80">
-                  [00:00:00.000 - 00:00:05.500] First sentence.<br />
-                  [00:00:05.500 - 00:00:10.000] Second sentence.
-                </code>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="flex items-center gap-1">
+            <ColorPicker />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                    <HelpCircle className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <p className="text-sm font-medium mb-2">Script Format</p>
+                  <code className="block text-xs opacity-80">
+                    [00:00:00.000 - 00:00:05.500] First sentence.<br />
+                    [00:00:05.500 - 00:00:10.000] Second sentence.
+                  </code>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
       </header>
 
