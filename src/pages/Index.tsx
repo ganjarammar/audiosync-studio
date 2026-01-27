@@ -1,9 +1,10 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Mic, Play, HelpCircle } from "lucide-react";
 import { FileUploader } from "@/components/FileUploader";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { CaptionDisplay } from "@/components/CaptionDisplay";
 import { ColorPicker } from "@/components/ColorPicker";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useProject } from "@/hooks/useProject";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +31,17 @@ const Index = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
+  // Initialize theme on mount
+  useEffect(() => {
+    const stored = localStorage.getItem("theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    if (stored === "dark" || (!stored && prefersDark)) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
   const handleTimeUpdate = useCallback((time: number) => {
     setCurrentTime(time);
   }, []);
@@ -41,7 +53,7 @@ const Index = () => {
   const isReady = audioUrl && sentences.length > 0 && isProcessed;
 
   return (
-    <div className="dark min-h-screen gradient-dark">
+    <div className="min-h-screen bg-background transition-colors duration-300">
       {/* Minimal Header */}
       <header className="fixed top-0 left-0 right-0 z-50 glass">
         <div className="container mx-auto flex items-center justify-between px-6 py-3">
@@ -54,6 +66,7 @@ const Index = () => {
           
           <div className="flex items-center gap-1">
             <ColorPicker />
+            <ThemeToggle />
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
