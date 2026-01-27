@@ -31,8 +31,9 @@ export function ColorPicker() {
 
   const applyColor = (color: ColorOption) => {
     setSelectedColor(color.name);
-    document.documentElement.style.setProperty("--primary", color.hsl);
-    document.documentElement.style.setProperty("--ring", color.hsl);
+    // Set with important priority to override .dark class
+    document.documentElement.style.setProperty("--primary", color.hsl, "important");
+    document.documentElement.style.setProperty("--ring", color.hsl, "important");
     setOpen(false);
   };
 
