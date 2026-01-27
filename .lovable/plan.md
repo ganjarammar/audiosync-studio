@@ -1,143 +1,81 @@
 
-
-# Modern & Simple UI Redesign for PodSync
+# History Feature Implementation Plan
 
 ## Overview
+Add a persistent history sidebar that saves all uploaded audio and caption pairs as "projects" that users can browse, replay, and manage. This transforms PodSync into a desktop-ready app where your work is always saved.
 
-Transform the current multi-section layout into a clean, minimal single-page experience with a focus on the caption preview as the hero element. The design will embrace dark mode by default, use generous whitespace, and reduce visual clutter.
+## What You'll Get
+- **History Sidebar**: A slide-out panel showing all your past projects with timestamps
+- **Instant Replay**: Click any project to immediately load and play it
+- **Project Management**: Delete old projects you no longer need
+- **Auto-Save**: Every time you process audio + captions, it automatically saves to history
+- **Persistent Storage**: Uses your browser's built-in database, so data survives page refreshes
 
-## Design Philosophy
-
-- **Less is more**: Remove section headers, reduce borders, embrace whitespace
-- **Dark-first**: Default to dark mode with a sleek media-studio aesthetic
-- **Focus on content**: Make the caption display the visual centerpiece
-- **Subtle interactions**: Glassmorphism, smooth animations, and hover states
-
----
-
-## Visual Changes
-
-### 1. Color Scheme Update (Dark Mode Default)
-
-- Deeper, richer dark background with subtle blue undertones
-- Vibrant accent color (electric blue/cyan) for active elements
-- Softer contrast for less eye strain
-- Remove purple tones, shift to modern blue/cyan palette
-
-### 2. Layout Simplification
-
-**Before**: Header + Upload Section + Alert + Button + Preview + Empty State
-**After**: Minimal header + Combined upload/preview area
-
-```text
-+--------------------------------------------------+
-|  [Logo] PodSync                        [Theme]   |
-+--------------------------------------------------+
-|                                                   |
-|        +----------------------------------+       |
-|        |                                  |       |
-|        |     Caption Display Area         |       |
-|        |     (Large, centered text)       |       |
-|        |                                  |       |
-|        +----------------------------------+       |
-|                                                   |
-|        +----------------------------------+       |
-|        |    Minimal Audio Controls        |       |
-|        +----------------------------------+       |
-|                                                   |
-|   [ Audio Upload ]    [ Script Upload ]           |
-|                                                   |
-+--------------------------------------------------+
-```
-
-### 3. Component Redesigns
-
-**Header**: Remove border, make it floating/minimal with just logo and optional theme toggle
-
-**FileUploader**: 
-- Compact inline buttons instead of large cards
-- Simple pill-shaped upload buttons with icons
-- Show file names inline after upload
-- Remove card wrappers and descriptions
-
-**CaptionDisplay**:
-- Larger, bolder typography (3xl or 4xl)
-- Full-width, more vertical space
-- Smoother gradient backgrounds
-- Subtle blur/glow effect on active words
-
-**AudioPlayer**:
-- Minimalist floating bar design
-- Remove volume slider (just mute toggle)
-- Sleeker progress bar with custom styling
-- Centered play button, skip buttons on hover only
-
-**Process Button**:
-- Larger, more prominent with gradient background
-- Animated pulse or glow effect when ready
+## User Experience Flow
+1. Upload audio and script files as usual
+2. Click "Generate Preview" - project automatically saves to history
+3. Click the History icon in the header to see all past projects
+4. Click any project to load it instantly
+5. Delete projects with the trash icon
 
 ---
 
 ## Technical Implementation
 
-### Files to Modify
+### 1. New Component: History Sidebar
+**File**: `src/components/HistorySidebar.tsx`
 
-1. **src/index.css**
-   - Update dark mode as default
-   - Add new CSS variables for glow effects
-   - Add custom animation keyframes (pulse, glow)
-   - Modernize color palette (shift to blue/cyan)
+Creates a Sheet component (slide-out panel) that:
+- Fetches all projects from IndexedDB on open
+- Displays projects sorted by date (newest first)
+- Shows project name, audio file name, and relative timestamp (e.g., "2 hours ago")
+- Provides load and delete actions for each project
+- Uses existing glass/glow styling for visual consistency
 
-2. **src/pages/Index.tsx**
-   - Simplify layout structure
-   - Remove section headers and Alert component
-   - Add collapsible format help (tooltip or modal)
-   - Center content with max-width constraint
+### 2. New Hook: useHistory
+**File**: `src/hooks/useHistory.tsx`
 
-3. **src/components/FileUploader.tsx**
-   - Replace card layout with inline button design
-   - Add compact success states
-   - Use pill-shaped buttons with subtle backgrounds
+A custom hook that manages:
+- Loading all projects from IndexedDB
+- Loading a specific project (fetches linked audio + script data)
+- Deleting projects (cascades to delete orphaned audio/scripts)
+- Refreshing the project list after changes
 
-4. **src/components/AudioPlayer.tsx**
-   - Redesign as floating minimal bar
-   - Simplify controls (hide volume slider, show on hover)
-   - Add glassmorphism effect
-   - Custom progress bar styling
+### 3. Update: useProject Hook
+**File**: `src/hooks/useProject.ts`
 
-5. **src/components/CaptionDisplay.tsx**
-   - Increase typography scale
-   - Add glow effect on active words
-   - Smoother fade transitions between sentences
-   - Remove visible borders, use subtle shadows
+Modifications:
+- Remove the localStorage clearing on mount (allow persistence)
+- Add `saveProject()` call when processing files to create a Project record
+- Add `loadProject(projectId)` function to restore a saved project
+- Return the `loadProject` function for the UI to use
 
-### New CSS Features
+### 4. Update: Types
+**File**: `src/types/caption.ts`
 
-```css
-/* Example additions */
-.glow-text {
-  text-shadow: 0 0 20px hsl(var(--primary) / 0.5);
-}
+Add optional `lastPlayedAt` field to Project interface for tracking recent plays.
 
-@keyframes subtle-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.8; }
-}
-```
+### 5. Update: Index Page
+**File**: `src/pages/Index.tsx`
+
+- Add History button to header (next to theme toggles)
+- Import and render HistorySidebar component
+- Connect loadProject callback to restore saved sessions
+
+### 6. Update: Database
+**File**: `src/lib/db.ts`
+
+Add `getProject(id)` function to fetch a single project by ID.
 
 ---
 
-## Summary of Changes
+## File Changes Summary
 
-| Component | Current | New |
-|-----------|---------|-----|
-| Theme | Light default | Dark default |
-| Colors | Purple accent | Cyan/blue accent |
-| Header | Bordered, busy | Minimal, floating |
-| Upload | Two large cards | Two compact buttons |
-| Caption | 2xl text, card bg | 4xl text, gradient + glow |
-| Player | Full controls visible | Minimal, hover-reveal |
-| Alert | Always visible | Hidden/tooltip |
-
-This redesign will create a sleek, modern media-studio experience that puts the focus on the caption animation while keeping the interface clean and intuitive.
-
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/components/HistorySidebar.tsx` | Create | History panel UI |
+| `src/hooks/useHistory.tsx` | Create | History data management |
+| `src/hooks/useProject.ts` | Modify | Add project saving/loading |
+| `src/types/caption.ts` | Modify | Add lastPlayedAt field |
+| `src/pages/Index.tsx` | Modify | Add history button + sidebar |
+| `src/lib/db.ts` | Modify | Add getProject function |
