@@ -31,9 +31,13 @@ export function ColorPicker() {
 
   const applyColor = (color: ColorOption) => {
     setSelectedColor(color.name);
-    // Set with important priority to override .dark class
-    document.documentElement.style.setProperty("--primary", color.hsl, "important");
-    document.documentElement.style.setProperty("--ring", color.hsl, "important");
+    // Our app applies `.dark` to a page wrapper, and that wrapper defines the CSS variables.
+    // So we must set the variables on the same element (inline styles win).
+    const themeRoot = (document.querySelector(".dark") as HTMLElement | null) ??
+      document.documentElement;
+
+    themeRoot.style.setProperty("--primary", color.hsl);
+    themeRoot.style.setProperty("--ring", color.hsl);
     setOpen(false);
   };
 
