@@ -9,9 +9,16 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Sentence, Word } from "@/types/caption";
 import { formatTimestamp } from "@/lib/captionParser";
 import { cn } from "@/lib/utils";
+import { getModifierKey } from "@/hooks/useKeyboardShortcuts";
 
 interface SearchResult {
   word: Word;
@@ -24,10 +31,11 @@ interface ScriptSearchProps {
   sentences: Sentence[];
   onSeekTo: (time: number) => void;
   currentTime: number;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function ScriptSearch({ sentences, onSeekTo, currentTime }: ScriptSearchProps) {
-  const [open, setOpen] = useState(false);
+export function ScriptSearch({ sentences, onSeekTo, currentTime, open, onOpenChange }: ScriptSearchProps) {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -70,6 +78,8 @@ export function ScriptSearch({ sentences, onSeekTo, currentTime }: ScriptSearchP
       setSelectedIndex(0);
     }
   }, [open]);
+
+  const setOpen = onOpenChange;
 
   // Scroll selected result into view
   useEffect(() => {
@@ -124,16 +134,25 @@ export function ScriptSearch({ sentences, onSeekTo, currentTime }: ScriptSearchP
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-muted-foreground hover:text-foreground"
-        >
-          <Search className="h-4 w-4" />
-        </Button>
-      </PopoverTrigger>
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <TooltipProvider>
+        <Tooltip>
+          <PopoverTrigger asChild>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+          </PopoverTrigger>
+          <TooltipContent side="bottom">
+            <p className="text-xs">Search script ({getModifierKey()}F)</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <PopoverContent 
         className="w-[360px] p-0" 
         align="end"

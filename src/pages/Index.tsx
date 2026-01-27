@@ -1,14 +1,15 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { Mic, Play, HelpCircle } from "lucide-react";
 import { FileUploader } from "@/components/FileUploader";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { CaptionDisplay } from "@/components/CaptionDisplay";
 import { ColorPicker } from "@/components/ColorPicker";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { ThemeToggle, toggleTheme } from "@/components/ThemeToggle";
 import { HistorySidebar } from "@/components/HistorySidebar";
 import { VocabularyLibrary } from "@/components/VocabularyLibrary";
 import { ScriptSearch } from "@/components/ScriptSearch";
 import { useProject } from "@/hooks/useProject";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -36,8 +37,23 @@ const Index = () => {
   const [duration, setDuration] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [vocabOpen, setVocabOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [shouldAutoPlay, setShouldAutoPlay] = useState(false);
   const [seekToTime, setSeekToTime] = useState<number | null>(null);
+
+  const isReady = audioUrl && sentences.length > 0 && isProcessed;
+
+  // Keyboard shortcuts
+  const shortcuts = useMemo(
+    () => [
+      { key: "h", callback: () => setHistoryOpen((prev) => !prev) },
+      { key: "b", callback: () => setVocabOpen((prev) => !prev) },
+      { key: "f", callback: () => setSearchOpen((prev) => !prev), enabled: isReady },
+      { key: "d", callback: toggleTheme },
+    ],
+    [isReady]
+  );
+  useKeyboardShortcuts(shortcuts);
 
   const handleSeekTo = useCallback((time: number) => {
     setSeekToTime(time);
@@ -66,7 +82,6 @@ const Index = () => {
     setDuration(dur);
   }, []);
 
-  const isReady = audioUrl && sentences.length > 0 && isProcessed;
 
   return (
     <div className="min-h-screen bg-background transition-colors duration-300">
@@ -95,6 +110,8 @@ const Index = () => {
                 sentences={sentences}
                 onSeekTo={handleSeekTo}
                 currentTime={currentTime}
+                open={searchOpen}
+                onOpenChange={setSearchOpen}
               />
             )}
             <ColorPicker />
