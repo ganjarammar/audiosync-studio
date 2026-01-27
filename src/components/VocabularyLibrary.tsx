@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Book, Search, Trash2, ArrowUpDown } from "lucide-react";
+import { Book, Search, Trash2, ArrowUpDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -109,11 +109,14 @@ export function VocabularyLibrary({
     words,
     stats,
     isLoading,
+    isLoadingMore,
+    hasMore,
     sortBy,
     setSortBy,
     searchQuery,
     setSearchQuery,
     refresh,
+    loadMore,
     clearAllVocabulary,
   } = useVocabulary();
 
@@ -225,6 +228,25 @@ export function VocabularyLibrary({
               {words.map((word) => (
                 <WordCard key={word.word} word={word} />
               ))}
+              
+              {/* Load More Button */}
+              {hasMore && !searchQuery && (
+                <Button
+                  variant="outline"
+                  className="w-full mt-4"
+                  onClick={loadMore}
+                  disabled={isLoadingMore}
+                >
+                  {isLoadingMore ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    "Load More Words"
+                  )}
+                </Button>
+              )}
             </div>
           )}
         </ScrollArea>
