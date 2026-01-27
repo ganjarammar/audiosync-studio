@@ -1,7 +1,5 @@
 import { useCallback, useState } from "react";
 import { Upload, Music, FileText, Check, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 interface FileUploaderProps {
@@ -67,12 +65,16 @@ export function FileUploader({
   );
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <Card
+    <div className="flex flex-wrap items-center justify-center gap-3">
+      {/* Audio Upload Button */}
+      <label
         className={cn(
-          "relative overflow-hidden transition-all duration-300",
-          audioDragActive && "ring-2 ring-primary ring-offset-2",
-          audioFile && "border-emerald-500/50 bg-emerald-500/5"
+          "group relative cursor-pointer",
+          "flex items-center gap-2 rounded-full px-5 py-2.5",
+          "glass transition-all duration-200",
+          "hover:bg-accent/20 hover:border-primary/30",
+          audioDragActive && "border-primary bg-accent/30",
+          audioFile && "border-primary/50 bg-accent/20"
         )}
         onDragOver={(e) => {
           e.preventDefault();
@@ -81,55 +83,43 @@ export function FileUploader({
         onDragLeave={() => setAudioDragActive(false)}
         onDrop={handleAudioDrop}
       >
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Music className="h-5 w-5" />
-            Audio File
-          </CardTitle>
-          <CardDescription>
-            Upload your podcast audio file (MP3, WAV, etc.)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <label
-            className={cn(
-              "flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors",
-              "hover:border-primary/50 hover:bg-muted/50",
-              audioDragActive && "border-primary bg-primary/10"
-            )}
-          >
-            <input
-              type="file"
-              accept="audio/*"
-              onChange={handleAudioChange}
-              className="sr-only"
-              disabled={isLoading}
-            />
-            {isLoading ? (
-              <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-            ) : audioFile ? (
-              <>
-                <Check className="h-10 w-10 text-emerald-500" />
-                <p className="mt-2 text-sm font-medium">{audioFile.name}</p>
-                <p className="text-xs text-muted-foreground">Click to replace</p>
-              </>
-            ) : (
-              <>
-                <Upload className="h-10 w-10 text-muted-foreground" />
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Drag & drop or click to upload
-                </p>
-              </>
-            )}
-          </label>
-        </CardContent>
-      </Card>
+        <input
+          type="file"
+          accept="audio/*"
+          onChange={handleAudioChange}
+          className="sr-only"
+          disabled={isLoading}
+        />
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        ) : audioFile ? (
+          <Check className="h-4 w-4 text-primary" />
+        ) : (
+          <Music className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+        )}
+        <span className={cn(
+          "text-sm transition-colors",
+          audioFile ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
+        )}>
+          {audioFile ? (
+            <span className="max-w-[150px] truncate inline-block align-middle">
+              {audioFile.name}
+            </span>
+          ) : (
+            "Audio"
+          )}
+        </span>
+      </label>
 
-      <Card
+      {/* Script Upload Button */}
+      <label
         className={cn(
-          "relative overflow-hidden transition-all duration-300",
-          scriptDragActive && "ring-2 ring-primary ring-offset-2",
-          scriptFile && "border-emerald-500/50 bg-emerald-500/5"
+          "group relative cursor-pointer",
+          "flex items-center gap-2 rounded-full px-5 py-2.5",
+          "glass transition-all duration-200",
+          "hover:bg-accent/20 hover:border-primary/30",
+          scriptDragActive && "border-primary bg-accent/30",
+          scriptFile && "border-primary/50 bg-accent/20"
         )}
         onDragOver={(e) => {
           e.preventDefault();
@@ -138,49 +128,33 @@ export function FileUploader({
         onDragLeave={() => setScriptDragActive(false)}
         onDrop={handleScriptDrop}
       >
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Script File
-          </CardTitle>
-          <CardDescription>
-            Upload your caption script with timestamps
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <label
-            className={cn(
-              "flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors",
-              "hover:border-primary/50 hover:bg-muted/50",
-              scriptDragActive && "border-primary bg-primary/10"
-            )}
-          >
-            <input
-              type="file"
-              accept=".txt,.srt,.vtt"
-              onChange={handleScriptChange}
-              className="sr-only"
-              disabled={isLoading}
-            />
-            {isLoading ? (
-              <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-            ) : scriptFile ? (
-              <>
-                <Check className="h-10 w-10 text-emerald-500" />
-                <p className="mt-2 text-sm font-medium">{scriptFile.name}</p>
-                <p className="text-xs text-muted-foreground">Click to replace</p>
-              </>
-            ) : (
-              <>
-                <Upload className="h-10 w-10 text-muted-foreground" />
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Drag & drop or click to upload
-                </p>
-              </>
-            )}
-          </label>
-        </CardContent>
-      </Card>
+        <input
+          type="file"
+          accept=".txt,.srt,.vtt"
+          onChange={handleScriptChange}
+          className="sr-only"
+          disabled={isLoading}
+        />
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        ) : scriptFile ? (
+          <Check className="h-4 w-4 text-primary" />
+        ) : (
+          <FileText className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+        )}
+        <span className={cn(
+          "text-sm transition-colors",
+          scriptFile ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
+        )}>
+          {scriptFile ? (
+            <span className="max-w-[150px] truncate inline-block align-middle">
+              {scriptFile.name}
+            </span>
+          ) : (
+            "Script"
+          )}
+        </span>
+      </label>
     </div>
   );
 }

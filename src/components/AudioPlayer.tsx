@@ -20,8 +20,8 @@ export function AudioPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -79,26 +79,12 @@ export function AudioPlayer({
     onTimeUpdate(value[0]);
   }, [onTimeUpdate]);
 
-  const handleVolumeChange = useCallback((value: number[]) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const vol = value[0];
-    audio.volume = vol;
-    setVolume(vol);
-    setIsMuted(vol === 0);
-  }, []);
-
   const toggleMute = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    if (isMuted) {
-      audio.volume = volume || 1;
-      setIsMuted(false);
-    } else {
-      audio.volume = 0;
-      setIsMuted(true);
-    }
-  }, [isMuted, volume]);
+    audio.muted = !isMuted;
+    setIsMuted(!isMuted);
+  }, [isMuted]);
 
   const skip = useCallback((seconds: number) => {
     const audio = audioRef.current;
@@ -107,7 +93,11 @@ export function AudioPlayer({
   }, [duration]);
 
   return (
-    <div className="rounded-xl bg-card p-6 shadow-lg">
+    <div 
+      className="glass rounded-2xl p-4 transition-all duration-300"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <audio ref={audioRef} src={audioUrl} preload="metadata" />
 
       {/* Progress bar */}
@@ -119,71 +109,72 @@ export function AudioPlayer({
           onValueChange={handleSeek}
           className="cursor-pointer"
         />
-        <div className="mt-1 flex justify-between text-xs text-muted-foreground">
+        <div className="mt-2 flex justify-between text-xs text-muted-foreground">
           <span>{formatTimestamp(currentTime)}</span>
           <span>{formatTimestamp(duration)}</span>
         </div>
       </div>
 
       {/* Controls */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => skip(-10)}
-            className="h-10 w-10"
-          >
-            <SkipBack className="h-5 w-5" />
-          </Button>
+      <div className="flex items-center justify-center gap-2">
+        {/* Skip back - show on hover */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => skip(-10)}
+          className={cn(
+            "h-9 w-9 rounded-full transition-all duration-200",
+            isHovered ? "opacity-100" : "opacity-0 pointer-events-none"
+          )}
+        >
+          <SkipBack className="h-4 w-4" />
+        </Button>
 
-          <Button
-            onClick={togglePlay}
-            size="icon"
-            className={cn(
-              "h-14 w-14 rounded-full transition-transform hover:scale-105",
-              isPlaying && "bg-primary/90"
-            )}
-          >
-            {isPlaying ? (
-              <Pause className="h-6 w-6" />
-            ) : (
-              <Play className="h-6 w-6 translate-x-0.5" />
-            )}
-          </Button>
+        {/* Main play button */}
+        <Button
+          onClick={togglePlay}
+          size="icon"
+          className={cn(
+            "h-12 w-12 rounded-full transition-all duration-200",
+            "gradient-primary glow-box hover:scale-105"
+          )}
+        >
+          {isPlaying ? (
+            <Pause className="h-5 w-5 text-primary-foreground" />
+          ) : (
+            <Play className="h-5 w-5 translate-x-0.5 text-primary-foreground" />
+          )}
+        </Button>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => skip(10)}
-            className="h-10 w-10"
-          >
-            <SkipForward className="h-5 w-5" />
-          </Button>
-        </div>
+        {/* Skip forward - show on hover */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => skip(10)}
+          className={cn(
+            "h-9 w-9 rounded-full transition-all duration-200",
+            isHovered ? "opacity-100" : "opacity-0 pointer-events-none"
+          )}
+        >
+          <SkipForward className="h-4 w-4" />
+        </Button>
 
-        {/* Volume control */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleMute}
-            className="h-8 w-8"
-          >
-            {isMuted ? (
-              <VolumeX className="h-4 w-4" />
-            ) : (
-              <Volume2 className="h-4 w-4" />
-            )}
-          </Button>
-          <Slider
-            value={[isMuted ? 0 : volume]}
-            max={1}
-            step={0.01}
-            onValueChange={handleVolumeChange}
-            className="w-24"
-          />
-        </div>
+        {/* Mute toggle - show on hover */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleMute}
+          className={cn(
+            "h-9 w-9 rounded-full transition-all duration-200 ml-4",
+            isHovered ? "opacity-100" : "opacity-0 pointer-events-none"
+          )}
+        >
+          {isMuted ? (
+            <VolumeX className="h-4 w-4" />
+          ) : (
+            <Volume2 className="h-4 w-4" />
+          )}
+        </Button>
       </div>
     </div>
   );
