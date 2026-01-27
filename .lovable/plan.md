@@ -1,29 +1,28 @@
 
-# Reduce Size of Previous/Next Sentences in Caption Display
+
+# Center Current Sentence with First Sentence Exception
 
 ## Overview
-Create a clearer visual hierarchy in the caption display by making the previous and next sentences smaller than the current running sentence. This keeps all three sentences visible in the fixed 300px area while emphasizing the active sentence.
+Make the current running sentence vertically centered within the 300px caption display height, **except for the first sentence** which should remain at the top.
 
 ---
 
-## Current vs. Proposed
+## Visual Concept
 
 ```text
-CURRENT STATE:
-┌─────────────────────────────────────┐
-│  Previous sentence (3xl, opacity 20%)│
-│  CURRENT SENTENCE (3xl, scale 105%) │
-│  Next sentence (3xl, opacity 30%)   │
-└─────────────────────────────────────┘
-All sentences are the same size - only opacity differs
+FIRST SENTENCE (stays at top):
+┌─────────────────────────────────┐
+│  FIRST SENTENCE (current)       │  ← Top-aligned
+│  Second sentence (next)         │
+│                                 │
+└─────────────────────────────────┘
 
-PROPOSED STATE:
-┌─────────────────────────────────────┐
-│  Previous sentence (lg, opacity 30%)│
-│  CURRENT SENTENCE (3xl/4xl)         │
-│  Next sentence (lg, opacity 40%)    │
-└─────────────────────────────────────┘
-Current sentence is prominent, surrounding sentences are smaller
+SECOND+ SENTENCES (centered):
+┌─────────────────────────────────┐
+│          Previous sentence      │
+│         CURRENT SENTENCE        │  ← Vertically centered
+│          Next sentence          │
+└─────────────────────────────────┘
 ```
 
 ---
@@ -32,21 +31,43 @@ Current sentence is prominent, surrounding sentences are smaller
 
 ### File: `src/components/CaptionDisplay.tsx`
 
-**Line 107-112** - Update the sentence container styling:
+**1. Add conditional vertical centering based on sentence index**
 
-| Sentence Type | Current | Proposed |
-|---------------|---------|----------|
-| Current | `text-3xl md:text-4xl scale-105` | `text-3xl md:text-4xl` (no change to size) |
-| Previous | `text-3xl md:text-4xl opacity-20` | `text-lg md:text-xl opacity-40` |
-| Next | `text-3xl md:text-4xl opacity-30` | `text-lg md:text-xl opacity-50` |
+Update line 99 to conditionally apply centering:
+- When `currentSentenceIndex === 0`: Keep top-aligned (`pt-4`)
+- When `currentSentenceIndex > 0`: Use flex centering (`flex flex-col justify-center h-full`)
 
-**Updated class logic:**
-- Current sentence: Keep `text-3xl md:text-4xl`, remove the scale (size difference will be enough)
-- Previous sentence: Use `text-lg md:text-xl` with slightly higher opacity (`opacity-40`) for readability
-- Next (upcoming) sentence: Use `text-lg md:text-xl` with `opacity-50`
+**Code change:**
+```jsx
+// Line 99: Replace
+<div className="space-y-8">
+
+// With conditional layout
+<div className={cn(
+  "h-full",
+  currentSentenceIndex === 0 
+    ? "space-y-6 pt-4"  // Top-aligned for first sentence
+    : "flex flex-col items-center justify-center gap-6"  // Centered for others
+)}>
+```
+
+**2. Remove unnecessary top padding from container**
+
+The parent container at line 94 has `p-8 md:p-12`. For proper vertical centering, we need to account for this padding. Adding `h-full` to the inner container ensures it uses all available vertical space for centering calculations.
 
 ---
 
-## Visual Result
+## Technical Summary
 
-The current sentence will be approximately **2-3x larger** than the surrounding sentences, creating a clear focal point while still allowing you to see context before and after. The smaller surrounding text will also help fit more content within the fixed 300px height without overflow issues.
+| Condition | Layout | Alignment |
+|-----------|--------|-----------|
+| First sentence (`index === 0`) | Stack with `space-y-6` | Top-aligned with `pt-4` |
+| Other sentences (`index > 0`) | Flexbox with `justify-center` | Vertically centered in 300px area |
+
+---
+
+## Result
+
+- **First sentence**: Stays at the top of the display with the next sentence below it
+- **All other sentences**: The current sentence is vertically centered, with previous sentences above and next sentences below, automatically adjusting positions to keep the current sentence anchored in the middle of the 300px height
+
