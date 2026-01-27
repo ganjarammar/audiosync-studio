@@ -14,37 +14,11 @@ export function useProject() {
   const [isProcessed, setIsProcessed] = useState(false);
   const [pendingScriptContent, setPendingScriptContent] = useState<string | null>(null);
 
-  // Load from localStorage on mount
+  // Clear old localStorage data on mount to start fresh
   useEffect(() => {
-    const loadSavedProject = async () => {
-      const savedAudioId = localStorage.getItem("currentAudioId");
-      const savedScriptId = localStorage.getItem("currentScriptId");
-
-      if (savedAudioId) {
-        const audio = await getAudio(savedAudioId);
-        if (audio) {
-          const url = URL.createObjectURL(audio.blob);
-          setAudioUrl(url);
-          setAudioId(savedAudioId);
-          setAudioFile(new File([audio.blob], audio.name, { type: audio.blob.type }));
-        }
-      }
-
-      if (savedScriptId) {
-        const script = await getScript(savedScriptId);
-        if (script) {
-          setSentences(script.sentences);
-          setScriptId(savedScriptId);
-          // Create a dummy file object for display
-          const content = script.sentences.map(s => 
-            `[${formatTime(s.startTime)} - ${formatTime(s.endTime)}] ${s.text}`
-          ).join("\n");
-          setScriptFile(new File([content], script.name, { type: "text/plain" }));
-        }
-      }
-    };
-
-    loadSavedProject();
+    // Clear any stale data - user needs to re-upload files each session
+    localStorage.removeItem("currentAudioId");
+    localStorage.removeItem("currentScriptId");
   }, []);
 
   const handleAudioUpload = useCallback(async (file: File) => {
