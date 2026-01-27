@@ -96,7 +96,12 @@ export function CaptionDisplay({ sentences, currentTime }: CaptionDisplayProps) 
       <div className="pointer-events-none absolute left-0 right-0 top-0 h-12 bg-gradient-to-b from-card/80 to-transparent z-10" />
       <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card/80 to-transparent z-10" />
 
-      <div className="space-y-8">
+      <div className={cn(
+        "h-full",
+        currentSentenceIndex === 0 
+          ? "space-y-6 pt-4"
+          : "flex flex-col items-center justify-center gap-6"
+      )}>
         {visibleSentences.map(({ sentence, originalIndex }) => {
           const isCurrent = originalIndex === currentSentenceIndex;
           const isPastSentence = originalIndex < currentSentenceIndex;
