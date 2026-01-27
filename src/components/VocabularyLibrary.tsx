@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Book, Search, Trash2, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -116,6 +116,13 @@ export function VocabularyLibrary({
     refresh,
     clearAllVocabulary,
   } = useVocabulary();
+
+  // Refresh vocabulary when sheet opens
+  useEffect(() => {
+    if (open) {
+      refresh();
+    }
+  }, [open, refresh]);
 
   const handleClear = async () => {
     await clearAllVocabulary();
