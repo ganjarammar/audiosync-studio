@@ -1,11 +1,30 @@
 
-# Fix Caption Display to Have a Fixed Height
+# Reduce Size of Previous/Next Sentences in Caption Display
 
-## Problem
-The caption display area currently uses `min-h-[300px]`, which sets a **minimum** height but allows the container to expand when there are more or longer sentences. You want a rigid, constant height that stays at 300px regardless of content.
+## Overview
+Create a clearer visual hierarchy in the caption display by making the previous and next sentences smaller than the current running sentence. This keeps all three sentences visible in the fixed 300px area while emphasizing the active sentence.
 
-## Solution
-Change the CaptionDisplay component to use a fixed height (`h-[300px]`) instead of a minimum height, and ensure overflow is properly clipped. The existing gradient overlays at top and bottom will help mask the clipped content for a polished look.
+---
+
+## Current vs. Proposed
+
+```text
+CURRENT STATE:
+┌─────────────────────────────────────┐
+│  Previous sentence (3xl, opacity 20%)│
+│  CURRENT SENTENCE (3xl, scale 105%) │
+│  Next sentence (3xl, opacity 30%)   │
+└─────────────────────────────────────┘
+All sentences are the same size - only opacity differs
+
+PROPOSED STATE:
+┌─────────────────────────────────────┐
+│  Previous sentence (lg, opacity 30%)│
+│  CURRENT SENTENCE (3xl/4xl)         │
+│  Next sentence (lg, opacity 40%)    │
+└─────────────────────────────────────┘
+Current sentence is prominent, surrounding sentences are smaller
+```
 
 ---
 
@@ -13,43 +32,21 @@ Change the CaptionDisplay component to use a fixed height (`h-[300px]`) instead 
 
 ### File: `src/components/CaptionDisplay.tsx`
 
-**Line 87 (Empty state):**
-- Change `min-h-[300px]` to `h-[300px]`
+**Line 107-112** - Update the sentence container styling:
 
-**Line 94 (Main caption container):**
-- Change `min-h-[300px]` to `h-[300px]`
-- The existing `overflow-hidden` class will clip any content that exceeds the fixed height
+| Sentence Type | Current | Proposed |
+|---------------|---------|----------|
+| Current | `text-3xl md:text-4xl scale-105` | `text-3xl md:text-4xl` (no change to size) |
+| Previous | `text-3xl md:text-4xl opacity-20` | `text-lg md:text-xl opacity-40` |
+| Next | `text-3xl md:text-4xl opacity-30` | `text-lg md:text-xl opacity-50` |
+
+**Updated class logic:**
+- Current sentence: Keep `text-3xl md:text-4xl`, remove the scale (size difference will be enough)
+- Previous sentence: Use `text-lg md:text-xl` with slightly higher opacity (`opacity-40`) for readability
+- Next (upcoming) sentence: Use `text-lg md:text-xl` with `opacity-50`
 
 ---
 
 ## Visual Result
 
-```text
-Before (min-h-[300px]):
-┌────────────────────────────────────┐
-│  Sentence 1                        │
-│  Sentence 2                        │  ← Height grows
-│  Sentence 3 (very long text...)    │     with content
-│  ...continues expanding...          │
-└────────────────────────────────────┘
-
-After (h-[300px]):
-┌────────────────────────────────────┐
-│  ░░░ gradient fade ░░░             │
-│  Sentence 1                        │  ← Fixed 300px
-│  Sentence 2 (current)              │     always
-│  Sentence 3 (clipped if needed)    │
-│  ░░░ gradient fade ░░░             │
-└────────────────────────────────────┘
-```
-
----
-
-## Technical Details
-
-| Location | Current | New |
-|----------|---------|-----|
-| Line 87 (empty state) | `min-h-[300px]` | `h-[300px]` |
-| Line 94 (main container) | `min-h-[300px]` | `h-[300px]` |
-
-The gradient overlays already in place (lines 96-97) will create a smooth fade effect at the top and bottom, making the clipped content look intentional and polished.
+The current sentence will be approximately **2-3x larger** than the surrounding sentences, creating a clear focal point while still allowing you to see context before and after. The smaller surrounding text will also help fit more content within the fixed 300px height without overflow issues.
