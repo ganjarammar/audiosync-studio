@@ -94,11 +94,15 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground transition-colors duration-300;
   }
 
-  /* Default to dark mode */
+  /* Color scheme follows theme */
   :root {
+    color-scheme: light;
+  }
+  
+  .dark {
     color-scheme: dark;
   }
 }
