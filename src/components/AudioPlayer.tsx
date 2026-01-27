@@ -12,6 +12,8 @@ interface AudioPlayerProps {
   onDurationChange: (duration: number) => void;
   autoPlay?: boolean;
   onAutoPlayTriggered?: () => void;
+  seekTo?: number | null;
+  onSeekComplete?: () => void;
 }
 
 export function AudioPlayer({
@@ -20,6 +22,8 @@ export function AudioPlayer({
   onDurationChange,
   autoPlay,
   onAutoPlayTriggered,
+  seekTo,
+  onSeekComplete,
 }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -87,6 +91,23 @@ export function AudioPlayer({
       return () => audio.removeEventListener("canplay", handleCanPlay);
     }
   }, [audioUrl, autoPlay, onAutoPlayTriggered]);
+
+  // External seek control
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || seekTo === null || seekTo === undefined) return;
+    
+    audio.currentTime = seekTo;
+    setCurrentTime(seekTo);
+    onTimeUpdate(seekTo);
+    
+    // Auto-play after seeking
+    if (audio.paused) {
+      audio.play().catch(() => {});
+    }
+    
+    onSeekComplete?.();
+  }, [seekTo, onTimeUpdate, onSeekComplete]);
 
   const togglePlay = useCallback(() => {
     const audio = audioRef.current;
