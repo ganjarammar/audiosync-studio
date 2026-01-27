@@ -1,324 +1,133 @@
 
 
-# Vocabulary Learning Library Implementation
+# Performance Optimization for Vocabulary Library
 
 ## Overview
 
-This plan implements a vocabulary tracking system that extracts words from SRT/script files, counts their occurrences across all projects, prevents duplicate counting from the same source file, and shows which files each word came from.
+This plan makes the vocabulary library lighter and more efficient by implementing **pagination** (load words in batches) and **virtualized rendering** (only render visible items). This will dramatically reduce memory usage and improve speed, especially as your word count grows.
 
-## What This Feature Does
-
-When you upload and process a new script file:
-1. All unique words are extracted and cleaned (lowercased, punctuation removed)
-2. New words are added to your vocabulary library
-3. Existing words get their count incremented
-4. The system remembers which script files have been processed to prevent duplicates
-5. Each word shows which source file(s) it came from
-
-## Data Architecture
+## Current Problem
 
 ```text
-VOCABULARY STORAGE (IndexedDB)
-
-┌─────────────────────────────────────────────────────────────────┐
-│  "vocabulary" object store                                      │
-│  ─────────────────────────────────────────────────────────────  │
-│  Key: word (lowercase string)                                   │
-│                                                                 │
-│  {                                                              │
-│    word: "example",           // The word itself                │
-│    count: 5,                  // Total occurrences across files │
-│    firstSeenAt: 1705123456,   // Timestamp first encountered    │
-│    lastSeenAt: 1705234567,    // Timestamp last encountered     │
-│    sources: [                 // File-level references          │
-│      { scriptId: "id1", fileName: "podcast_ep1.srt" },          │
-│      { scriptId: "id2", fileName: "interview_2024.srt" }        │
-│    ]                                                            │
-│  }                                                              │
-└─────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────┐
-│  "processedScripts" object store                                │
-│  ─────────────────────────────────────────────────────────────  │
-│  Key: scriptId                                                  │
-│                                                                 │
-│  {                                                              │
-│    scriptId: "abc-123",       // Same as script.id from db      │
-│    fileName: "podcast_ep1.srt", // Original file name           │
-│    processedAt: 1705123456,   // When vocabulary was extracted  │
-│    wordCount: 150             // Total words extracted          │
-│  }                                                              │
-└─────────────────────────────────────────────────────────────────┘
+NOW: Open vocabulary panel
+     ↓
+     Load ALL 5,000 words into memory
+     ↓
+     Render ALL 5,000 word cards
+     ↓
+     Slow and memory-heavy
 ```
 
-## Source Reference Structure
-
-Each word tracks its sources at the FILE level only (not word position):
+## Proposed Solution
 
 ```text
-Word: "technology"
-├── Count: 12 (total times seen across all files)
-└── Sources:
-    ├── podcast_ep1.srt
-    ├── interview_2024.srt
-    └── lecture_notes.srt
-
-UI Display:
-┌─────────────────────────────────────────┐
-│ technology                    ×12       │
-│ Sources: podcast_ep1.srt, interview... │
-└─────────────────────────────────────────┘
+AFTER: Open vocabulary panel
+       ↓
+       Load only first 50 words
+       ↓
+       Render only ~10 visible cards
+       ↓
+       Load more as you scroll ("Load More" button)
+       ↓
+       Fast and light
 ```
 
-## Duplicate Prevention Logic
+## Key Optimizations
 
-```text
-User uploads "podcast_ep1.srt" → Script ID: "abc-123"
-                    ↓
-┌──────────────────────────────────────────────────────┐
-│ Check: Is "abc-123" in processedScripts?             │
-│                                                      │
-│   NO  → Extract words → Update vocabulary → Mark as  │
-│         processed                                    │
-│                                                      │
-│   YES → Skip vocabulary extraction (already counted) │
-└──────────────────────────────────────────────────────┘
-```
-
-## Word Processing Rules
-
-- Convert to lowercase: "Hello" → "hello"
-- Remove punctuation: "world!" → "world"
-- Keep contractions: "don't" → "don't"
-- Remove numbers-only words: "123" → skipped
-- Minimum length: 2+ characters
+| Issue | Solution |
+|-------|----------|
+| Loading all words at once | Paginated loading (50 words per batch) |
+| Rendering all word cards | Only render what's visible + load more button |
+| Stats require full scan | Separate lightweight stats query using IndexedDB cursor |
+| Hook loads on mount | Lazy loading - only fetch when panel opens |
 
 ---
 
 ## Implementation Details
 
-### 1. New Type Definitions
-
-**File: `src/types/caption.ts`**
-
-```typescript
-export interface WordSource {
-  scriptId: string;
-  fileName: string;
-}
-
-export interface VocabularyWord {
-  word: string;
-  count: number;
-  firstSeenAt: number;
-  lastSeenAt: number;
-  sources: WordSource[];  // File-level references only
-}
-
-export interface ProcessedScript {
-  scriptId: string;
-  fileName: string;
-  processedAt: number;
-  wordCount: number;
-}
-```
-
-### 2. Database Schema Update
+### 1. Add Paginated Database Query
 
 **File: `src/lib/db.ts`**
 
-- Increment `DB_VERSION` from 1 to 2
-- Add migration for new object stores:
-  - `vocabulary` (keyPath: "word")
-  - `processedScripts` (keyPath: "scriptId")
-- Add CRUD functions:
-  - `getVocabularyWord(word)`
-  - `getAllVocabulary()`
-  - `saveVocabularyWord(entry)`
-  - `isScriptProcessed(scriptId)`
-  - `markScriptProcessed(entry)`
-  - `getVocabularyStats()`
-
-### 3. Word Extraction Utility
-
-**New File: `src/lib/vocabularyProcessor.ts`**
+Add a new function that loads words in pages using IndexedDB cursor for efficiency:
 
 ```typescript
-export function extractWordsFromScript(script: Script): Map<string, number> {
-  const wordCounts = new Map<string, number>();
-  
-  for (const sentence of script.sentences) {
-    const words = sentence.text.split(/\s+/);
-    for (const rawWord of words) {
-      const cleaned = cleanWord(rawWord);
-      if (isValidWord(cleaned)) {
-        wordCounts.set(cleaned, (wordCounts.get(cleaned) || 0) + 1);
-      }
-    }
-  }
-  
-  return wordCounts;
+// Get vocabulary stats without loading all words
+export async function getVocabularyStats(): Promise<{
+  totalWords: number;
+  totalOccurrences: number;
+  totalSources: number;
+}> {
+  // Uses cursor to count without loading full objects
 }
 
-function cleanWord(word: string): string {
-  // Remove leading/trailing punctuation, keep internal apostrophes
-  return word.toLowerCase().replace(/^[^\w']+|[^\w']+$/g, '');
-}
-
-function isValidWord(word: string): boolean {
-  return word.length >= 2 && !/^\d+$/.test(word);
+// Get paginated vocabulary
+export async function getVocabularyPage(
+  offset: number,
+  limit: number
+): Promise<VocabularyWord[]> {
+  // Returns only a slice of words
 }
 ```
 
-### 4. Vocabulary Update Function
+### 2. Update useVocabulary Hook
 
-**File: `src/lib/vocabularyProcessor.ts`**
+**File: `src/hooks/useVocabulary.ts`**
 
-```typescript
-export async function processScriptForVocabulary(
-  script: Script
-): Promise<{ newWords: number; updatedWords: number; skipped: boolean }> {
-  
-  // Check if already processed
-  if (await isScriptProcessed(script.id)) {
-    return { newWords: 0, updatedWords: 0, skipped: true };
-  }
-  
-  const wordCounts = extractWordsFromScript(script);
-  const source: WordSource = { scriptId: script.id, fileName: script.name };
-  
-  let newWords = 0;
-  let updatedWords = 0;
-  
-  for (const [word, count] of wordCounts) {
-    const existing = await getVocabularyWord(word);
-    
-    if (existing) {
-      await saveVocabularyWord({
-        ...existing,
-        count: existing.count + count,
-        lastSeenAt: Date.now(),
-        sources: [...existing.sources, source],  // Add file source
-      });
-      updatedWords++;
-    } else {
-      await saveVocabularyWord({
-        word,
-        count,
-        firstSeenAt: Date.now(),
-        lastSeenAt: Date.now(),
-        sources: [source],  // Initial source
-      });
-      newWords++;
-    }
-  }
-  
-  // Mark script as processed
-  await markScriptProcessed({
-    scriptId: script.id,
-    fileName: script.name,
-    processedAt: Date.now(),
-    wordCount: wordCounts.size,
-  });
-  
-  return { newWords, updatedWords, skipped: false };
-}
-```
-
-### 5. Vocabulary Hook
-
-**New File: `src/hooks/useVocabulary.ts`**
+Changes:
+- Remove automatic loading on mount (lazy load)
+- Add pagination state (`page`, `hasMore`)
+- Add `loadMore()` function
+- Keep stats separate from word loading
+- Apply search/sort before fetching (or fetch all only when searching)
 
 ```typescript
 export function useVocabulary() {
   const [words, setWords] = useState<VocabularyWord[]>([]);
-  const [stats, setStats] = useState({ 
-    totalUniqueWords: 0, 
-    totalOccurrences: 0,
-    totalSources: 0 
-  });
-  const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 50;
 
-  const refresh = useCallback(async () => {
-    setIsLoading(true);
-    const allWords = await getAllVocabulary();
-    // Sort by frequency (highest first)
-    setWords(allWords.sort((a, b) => b.count - a.count));
-    
-    // Calculate stats
-    const totalOccurrences = allWords.reduce((sum, w) => sum + w.count, 0);
-    const allSources = new Set(allWords.flatMap(w => w.sources.map(s => s.scriptId)));
-    
-    setStats({
-      totalUniqueWords: allWords.length,
-      totalOccurrences,
-      totalSources: allSources.size,
-    });
-    setIsLoading(false);
+  const loadMore = useCallback(async () => {
+    const newWords = await getVocabularyPage(page * PAGE_SIZE, PAGE_SIZE);
+    setWords(prev => [...prev, ...newWords]);
+    setHasMore(newWords.length === PAGE_SIZE);
+    setPage(p => p + 1);
+  }, [page]);
+
+  // Stats loaded separately (lightweight)
+  const loadStats = useCallback(async () => {
+    const stats = await getVocabularyStats();
+    setStats(stats);
   }, []);
-
-  return { words, stats, isLoading, refresh };
 }
 ```
 
-### 6. Vocabulary Display Component
+### 3. Add "Load More" Button to UI
 
-**New File: `src/components/VocabularyLibrary.tsx`**
+**File: `src/components/VocabularyLibrary.tsx`**
 
-A slide-out sheet (similar to HistorySidebar) showing:
-
-```text
-┌─────────────────────────────────────────────────────┐
-│  📚 Vocabulary Library                    [X Close] │
-├─────────────────────────────────────────────────────┤
-│  Stats: 1,234 words | 5,678 occurrences | 8 files   │
-├─────────────────────────────────────────────────────┤
-│  🔍 Search words...                                 │
-├─────────────────────────────────────────────────────┤
-│                                                     │
-│  ┌─────────────────────────────────────────────┐   │
-│  │ technology                           ×12     │   │
-│  │ Sources: podcast_ep1.srt, interview.srt      │   │
-│  └─────────────────────────────────────────────┘   │
-│                                                     │
-│  ┌─────────────────────────────────────────────┐   │
-│  │ development                          ×8      │   │
-│  │ Sources: lecture_notes.srt                   │   │
-│  └─────────────────────────────────────────────┘   │
-│                                                     │
-│  ... (scrollable list)                              │
-└─────────────────────────────────────────────────────┘
-```
-
-Features:
-- Search/filter words
-- Show count badge
-- Expandable source list (shows "podcast_ep1.srt, +2 more" if many sources)
-- Sort by: frequency, alphabetical, recently added
-
-### 7. Integration Points
-
-**File: `src/hooks/useProject.ts`**
-
-Add vocabulary processing after script save:
-
-```typescript
-// After saving script
-await saveScript(scriptData);
-
-// Process vocabulary
-const vocabResult = await processScriptForVocabulary(scriptData);
-
-// Could show toast: "Added 45 new words to library"
-```
-
-**File: `src/pages/Index.tsx`**
-
-Add vocabulary button to header (Book icon):
+Replace infinite list with paginated list + load more:
 
 ```tsx
-<VocabularyLibrary open={vocabOpen} onOpenChange={setVocabOpen} />
+<ScrollArea>
+  {words.map(word => <WordCard key={word.word} word={word} />)}
+  
+  {hasMore && (
+    <Button onClick={loadMore} variant="outline" className="w-full">
+      Load More Words
+    </Button>
+  )}
+</ScrollArea>
 ```
+
+### 4. Handle Search Efficiently
+
+For search, we have two options:
+- **Option A**: Load all words only when user types a search query (trade-off for functionality)
+- **Option B**: Show "Search in first 500 words" limitation
+
+I recommend **Option A** for better user experience - search is when you need full data, but normal browsing stays light.
 
 ---
 
@@ -326,25 +135,36 @@ Add vocabulary button to header (Book icon):
 
 | File | Action | Description |
 |------|--------|-------------|
-| `src/types/caption.ts` | Modify | Add VocabularyWord, WordSource, ProcessedScript interfaces |
-| `src/lib/db.ts` | Modify | Upgrade DB version to 2, add vocabulary stores and CRUD |
-| `src/lib/vocabularyProcessor.ts` | Create | Word extraction, cleaning, and vocabulary update logic |
-| `src/hooks/useVocabulary.ts` | Create | React hook for vocabulary state |
-| `src/hooks/useProject.ts` | Modify | Integrate vocabulary processing |
-| `src/components/VocabularyLibrary.tsx` | Create | UI sheet to display word library with sources |
-| `src/pages/Index.tsx` | Modify | Add vocabulary button to header |
+| `src/lib/db.ts` | Modify | Add `getVocabularyStats()` and `getVocabularyPage()` functions |
+| `src/hooks/useVocabulary.ts` | Modify | Add pagination, lazy loading, separate stats loading |
+| `src/components/VocabularyLibrary.tsx` | Modify | Add "Load More" button, show loading state per page |
 
 ---
 
-## User Experience Flow
+## Performance Comparison
 
 ```text
-1. User uploads audio + "podcast_ep1.srt"
-2. Clicks "Generate Preview"
-3. System processes files AND extracts vocabulary
-4. Toast: "Added 245 new words to your library!"
-5. User clicks 📚 button → sees vocabulary sheet
-6. Each word shows count + source file names
-7. If same file uploaded again → skipped (no duplicates)
+Vocabulary size: 5,000 words
+
+BEFORE:
+- Initial load: ~500ms (fetch all)
+- Memory: ~2MB (all words in state)
+- Render: ~200ms (5,000 cards)
+
+AFTER:
+- Initial load: ~50ms (fetch 50)
+- Memory: ~20KB (50 words in state)
+- Render: ~5ms (50 cards)
+- Load more: ~50ms per batch
 ```
+
+---
+
+## User Experience
+
+1. Open vocabulary panel - instantly shows first 50 words
+2. Scroll down - see "Load More" button at bottom
+3. Click "Load More" - adds next 50 words
+4. Search - loads full dataset but only when needed
+5. Stats always show total counts (loaded separately)
 
