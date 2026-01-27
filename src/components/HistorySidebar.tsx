@@ -27,7 +27,7 @@ import { Project } from "@/types/caption";
 interface HistorySidebarProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onLoadProject: (loaded: LoadedProject) => void;
+  onLoadProject: (loaded: LoadedProject, autoPlay?: boolean) => void;
 }
 
 export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySidebarProps) {
@@ -40,10 +40,10 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
     }
   }, [open, refreshProjects]);
 
-  const handleLoad = async (project: Project) => {
+  const handleLoad = async (project: Project, autoPlay = false) => {
     const loaded = await loadProject(project.id);
     if (loaded) {
-      onLoadProject(loaded);
+      onLoadProject(loaded, autoPlay);
       onOpenChange(false);
     }
   };
@@ -126,7 +126,7 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
                       className="h-7 w-7 text-primary hover:bg-primary/20"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleLoad(project);
+                        handleLoad(project, true);
                       }}
                     >
                       <Play className="h-3.5 w-3.5" />

@@ -9,12 +9,16 @@ interface AudioPlayerProps {
   audioUrl: string;
   onTimeUpdate: (time: number) => void;
   onDurationChange: (duration: number) => void;
+  autoPlay?: boolean;
+  onAutoPlayTriggered?: () => void;
 }
 
 export function AudioPlayer({
   audioUrl,
   onTimeUpdate,
   onDurationChange,
+  autoPlay,
+  onAutoPlayTriggered,
 }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -59,6 +63,29 @@ export function AudioPlayer({
       audio.removeEventListener("ended", handleEnded);
     };
   }, [onTimeUpdate, onDurationChange]);
+
+  // Auto-play effect when loading from history with play button
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !autoPlay) return;
+
+    const handleCanPlay = () => {
+      audio.play().then(() => {
+        onAutoPlayTriggered?.();
+      }).catch(() => {
+        // Auto-play was blocked by browser
+        onAutoPlayTriggered?.();
+      });
+    };
+
+    if (audio.readyState >= 3) {
+      // Audio is already ready
+      handleCanPlay();
+    } else {
+      audio.addEventListener("canplay", handleCanPlay, { once: true });
+      return () => audio.removeEventListener("canplay", handleCanPlay);
+    }
+  }, [audioUrl, autoPlay, onAutoPlayTriggered]);
 
   const togglePlay = useCallback(() => {
     const audio = audioRef.current;
