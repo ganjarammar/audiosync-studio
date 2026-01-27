@@ -33,3 +33,23 @@ export interface Project {
   createdAt: number;
   lastPlayedAt?: number;
 }
+
+export interface WordSource {
+  scriptId: string;
+  fileName: string;
+}
+
+export interface VocabularyWord {
+  word: string;
+  count: number;
+  firstSeenAt: number;
+  lastSeenAt: number;
+  sources: WordSource[];
+}
+
+export interface ProcessedScript {
+  scriptId: string;
+  fileName: string;
+  processedAt: number;
+  wordCount: number;
+}

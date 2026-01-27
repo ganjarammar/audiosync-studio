@@ -1,8 +1,10 @@
 import { useState, useCallback } from "react";
 import { saveAudio, saveScript, saveProject as saveProjectToDB } from "@/lib/db";
 import { parseScript } from "@/lib/captionParser";
+import { processScriptForVocabulary } from "@/lib/vocabularyProcessor";
 import { Sentence, AudioFile, Script, Project } from "@/types/caption";
 import { LoadedProject } from "./useHistory.ts";
+import { toast } from "sonner";
 
 export function useProject() {
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -81,6 +83,15 @@ export function useProject() {
       };
 
       await saveProjectToDB(project);
+
+      // Process vocabulary
+      const vocabResult = await processScriptForVocabulary(scriptData);
+      if (!vocabResult.skipped) {
+        const totalWords = vocabResult.newWords + vocabResult.updatedWords;
+        toast.success(`Added ${vocabResult.newWords} new words to your library!`, {
+          description: `${vocabResult.updatedWords} existing words updated. Total: ${totalWords} unique words.`,
+        });
+      }
 
       setSentences(parsedSentences);
       setScriptId(id);

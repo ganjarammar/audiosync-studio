@@ -6,6 +6,7 @@ import { CaptionDisplay } from "@/components/CaptionDisplay";
 import { ColorPicker } from "@/components/ColorPicker";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { HistorySidebar } from "@/components/HistorySidebar";
+import { VocabularyLibrary } from "@/components/VocabularyLibrary";
 import { useProject } from "@/hooks/useProject";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +34,7 @@ const Index = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [vocabOpen, setVocabOpen] = useState(false);
   const [shouldAutoPlay, setShouldAutoPlay] = useState(false);
 
   // Initialize theme on mount
@@ -77,7 +79,9 @@ const Index = () => {
                 setShouldAutoPlay(autoPlay ?? false);
               }}
             />
+            <VocabularyLibrary open={vocabOpen} onOpenChange={setVocabOpen} />
             <ColorPicker />
+            <ThemeToggle />
             <ThemeToggle />
             <TooltipProvider>
               <Tooltip>

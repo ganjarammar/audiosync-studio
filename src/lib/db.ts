@@ -1,7 +1,7 @@
-import { AudioFile, Script, Project } from "@/types/caption";
+import { AudioFile, Script, Project, VocabularyWord, ProcessedScript } from "@/types/caption";
 
 const DB_NAME = "podcastCaptionSync";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let db: IDBDatabase | null = null;
 
@@ -28,6 +28,12 @@ export async function initDB(): Promise<IDBDatabase> {
       }
       if (!database.objectStoreNames.contains("projects")) {
         database.createObjectStore("projects", { keyPath: "id" });
+      }
+      if (!database.objectStoreNames.contains("vocabulary")) {
+        database.createObjectStore("vocabulary", { keyPath: "word" });
+      }
+      if (!database.objectStoreNames.contains("processedScripts")) {
+        database.createObjectStore("processedScripts", { keyPath: "scriptId" });
       }
     };
   });
@@ -162,5 +168,76 @@ export async function getProject(id: string): Promise<Project | undefined> {
     const request = store.get(id);
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve(request.result);
+  });
+}
+
+// Vocabulary functions
+export async function getVocabularyWord(word: string): Promise<VocabularyWord | undefined> {
+  const database = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(["vocabulary"], "readonly");
+    const store = transaction.objectStore("vocabulary");
+    const request = store.get(word);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+  });
+}
+
+export async function getAllVocabulary(): Promise<VocabularyWord[]> {
+  const database = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(["vocabulary"], "readonly");
+    const store = transaction.objectStore("vocabulary");
+    const request = store.getAll();
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+  });
+}
+
+export async function saveVocabularyWord(entry: VocabularyWord): Promise<void> {
+  const database = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(["vocabulary"], "readwrite");
+    const store = transaction.objectStore("vocabulary");
+    const request = store.put(entry);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve();
+  });
+}
+
+export async function isScriptProcessed(scriptId: string): Promise<boolean> {
+  const database = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(["processedScripts"], "readonly");
+    const store = transaction.objectStore("processedScripts");
+    const request = store.get(scriptId);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result !== undefined);
+  });
+}
+
+export async function markScriptProcessed(entry: ProcessedScript): Promise<void> {
+  const database = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(["processedScripts"], "readwrite");
+    const store = transaction.objectStore("processedScripts");
+    const request = store.put(entry);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve();
+  });
+}
+
+export async function clearVocabulary(): Promise<void> {
+  const database = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(["vocabulary", "processedScripts"], "readwrite");
+    const vocabStore = transaction.objectStore("vocabulary");
+    const processedStore = transaction.objectStore("processedScripts");
+    
+    vocabStore.clear();
+    processedStore.clear();
+    
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
   });
 }
