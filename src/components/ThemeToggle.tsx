@@ -27,18 +27,15 @@ export function ThemeToggle({ onToggle }: ThemeToggleProps) {
     setIsDark((prev) => !prev);
   }, []);
 
-  // Expose toggle via callback
+  // Always expose toggle for keyboard shortcut
   useEffect(() => {
-    if (onToggle) {
-      // Store the toggle function reference for external use
-      (window as any).__themeToggle = toggle;
-    }
+    (window as any).__themeToggle = toggle;
     return () => {
       if ((window as any).__themeToggle === toggle) {
         delete (window as any).__themeToggle;
       }
     };
-  }, [onToggle, toggle]);
+  }, [toggle]);
 
   useEffect(() => {
     const root = document.documentElement;
