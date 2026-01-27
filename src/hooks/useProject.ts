@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { saveAudio, saveScript, saveProject as saveProjectToDB } from "@/lib/db";
 import { parseScript } from "@/lib/captionParser";
 import { Sentence, AudioFile, Script, Project } from "@/types/caption";
-import { LoadedProject } from "./useHistory";
+import { LoadedProject } from "./useHistory.ts";
 
 export function useProject() {
   const [audioFile, setAudioFile] = useState<File | null>(null);

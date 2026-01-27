@@ -7,8 +7,6 @@ import {
   deleteProject,
   deleteAudio,
   deleteScript,
-  getAllAudio,
-  getAllScripts,
   saveProject,
 } from "@/lib/db";
 import { Project, AudioFile, Script } from "@/types/caption";

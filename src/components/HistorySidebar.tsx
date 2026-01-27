@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useHistory, LoadedProject } from "@/hooks/useHistory";
+import { useHistory, LoadedProject } from "@/hooks/useHistory.ts";
 import { Project } from "@/types/caption";
 
 interface HistorySidebarProps {
