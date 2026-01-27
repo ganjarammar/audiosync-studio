@@ -84,56 +84,32 @@ export function CaptionDisplay({ sentences, currentTime }: CaptionDisplayProps) 
 
   if (sentences.length === 0) {
     return (
-      <div className="flex h-[300px] items-center justify-center rounded-2xl glass p-12">
+      <div className="flex min-h-[300px] items-center justify-center rounded-2xl glass p-12">
         <p className="text-muted-foreground">Upload a script file to see captions</p>
       </div>
     );
   }
 
   return (
-    <div className="relative h-[300px] overflow-hidden rounded-2xl glass p-8 md:p-12">
+    <div className="relative min-h-[300px] overflow-hidden rounded-2xl glass p-8 md:p-12">
       {/* Gradient overlays for smooth transitions */}
       <div className="pointer-events-none absolute left-0 right-0 top-0 h-12 bg-gradient-to-b from-card/80 to-transparent z-10" />
       <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card/80 to-transparent z-10" />
 
-      <div className="relative h-full">
-        {visibleSentences.map(({ sentence, originalIndex }, displayIndex) => {
+      <div className="space-y-8">
+        {visibleSentences.map(({ sentence, originalIndex }) => {
           const isCurrent = originalIndex === currentSentenceIndex;
           const isPastSentence = originalIndex < currentSentenceIndex;
-          
-          // Calculate vertical position
-          // For first sentence: top-aligned
-          // For others: current sentence at center, others positioned relative
-          const getPositionStyle = () => {
-            if (currentSentenceIndex === 0) {
-              // First sentence mode: stack from top
-              return {
-                position: 'relative' as const,
-                marginBottom: '1.5rem',
-              };
-            }
-            
-            // Centered mode: current sentence at 50%, others offset
-            const offset = displayIndex - visibleSentences.findIndex(v => v.originalIndex === currentSentenceIndex);
-            return {
-              position: 'absolute' as const,
-              left: '50%',
-              transform: `translateX(-50%) translateY(${offset * 100}%)`,
-              top: '50%',
-              marginTop: `${offset * 2}rem`,
-            };
-          };
 
           return (
             <div
               key={`${originalIndex}-${sentence.startTime}`}
               className={cn(
-                "text-center text-2xl md:text-3xl leading-relaxed transition-all duration-500 ease-out w-full",
-                isCurrent && "scale-100 opacity-100",
-                isPastSentence && "scale-75 opacity-40",
-                !isCurrent && !isPastSentence && "scale-75 opacity-50"
+                "text-center text-3xl md:text-4xl leading-relaxed transition-all duration-500",
+                isCurrent && "scale-105",
+                !isCurrent && !isPastSentence && "opacity-30",
+                isPastSentence && "opacity-20"
               )}
-              style={getPositionStyle()}
             >
               {sentence.words.map((word, wordIdx) => {
                 const isActiveWord = isCurrent && wordIdx === currentWordIndex;

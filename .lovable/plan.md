@@ -1,73 +1,69 @@
 
+# Fix: Auto-Play Audio When Loading from History Play Button
 
-# Center Current Sentence with First Sentence Exception
+## The Problem
+When you click the Play button on a project in the history sidebar, it loads the project but doesn't start playing the audio. The Play button currently does the same thing as clicking anywhere on the project card - it just loads the project.
 
-## Overview
-Make the current running sentence vertically centered within the 300px caption display height, **except for the first sentence** which should remain at the top.
+## The Solution
+Add an "auto-play" feature that starts audio playback automatically when you click the Play button (but not when you just click to load).
 
----
-
-## Visual Concept
-
-```text
-FIRST SENTENCE (stays at top):
-┌─────────────────────────────────┐
-│  FIRST SENTENCE (current)       │  ← Top-aligned
-│  Second sentence (next)         │
-│                                 │
-└─────────────────────────────────┘
-
-SECOND+ SENTENCES (centered):
-┌─────────────────────────────────┐
-│          Previous sentence      │
-│         CURRENT SENTENCE        │  ← Vertically centered
-│          Next sentence          │
-└─────────────────────────────────┘
-```
+## How It Will Work
+1. Click the **Play button** → Project loads AND audio starts playing immediately
+2. Click **anywhere else on the card** → Project loads but audio stays paused (current behavior)
 
 ---
 
-## Changes Required
+## Technical Changes
 
-### File: `src/components/CaptionDisplay.tsx`
+### 1. Update AudioPlayer Component
+**File**: `src/components/AudioPlayer.tsx`
 
-**1. Add conditional vertical centering based on sentence index**
+Add an optional `autoPlay` prop that triggers playback when set to true:
+- New prop: `autoPlay?: boolean`
+- Add a `useEffect` that watches for `autoPlay` and the audio source changes
+- When both conditions are met, call `audio.play()` automatically
 
-Update line 99 to conditionally apply centering:
-- When `currentSentenceIndex === 0`: Keep top-aligned (`pt-4`)
-- When `currentSentenceIndex > 0`: Use flex centering (`flex flex-col justify-center h-full`)
+### 2. Update Index Page
+**File**: `src/pages/Index.tsx`
 
-**Code change:**
-```jsx
-// Line 99: Replace
-<div className="space-y-8">
+Track whether the loaded project should auto-play:
+- New state: `shouldAutoPlay` (boolean)
+- Pass `autoPlay={shouldAutoPlay}` to `AudioPlayer`
+- Reset `shouldAutoPlay` to false after playback starts
+- Update `onLoadProject` callback to accept an optional `autoPlay` parameter
 
-// With conditional layout
-<div className={cn(
-  "h-full",
-  currentSentenceIndex === 0 
-    ? "space-y-6 pt-4"  // Top-aligned for first sentence
-    : "flex flex-col items-center justify-center gap-6"  // Centered for others
-)}>
-```
+### 3. Update useProject Hook
+**File**: `src/hooks/useProject.ts`
 
-**2. Remove unnecessary top padding from container**
+Modify `loadProject` to accept and return an auto-play flag:
+- Add optional `autoPlay` parameter to `loadProject` function
+- Return this flag so the Index page knows whether to trigger auto-play
 
-The parent container at line 94 has `p-8 md:p-12`. For proper vertical centering, we need to account for this padding. Adding `h-full` to the inner container ensures it uses all available vertical space for centering calculations.
+### 4. Update HistorySidebar Component
+**File**: `src/components/HistorySidebar.tsx`
+
+Differentiate between "load" and "load & play" actions:
+- Modify `handleLoad` to accept an optional `shouldPlay` parameter
+- When Play button is clicked, pass `shouldPlay: true`
+- When card is clicked, pass `shouldPlay: false` (or omit)
+
+### 5. Update HistorySidebar Props
+**File**: `src/components/HistorySidebar.tsx`
+
+Update the `onLoadProject` callback type to include an auto-play flag:
+- Change from `onLoadProject: (loaded: LoadedProject) => void`
+- Change to `onLoadProject: (loaded: LoadedProject, autoPlay?: boolean) => void`
 
 ---
 
-## Technical Summary
+## File Changes Summary
 
-| Condition | Layout | Alignment |
-|-----------|--------|-----------|
-| First sentence (`index === 0`) | Stack with `space-y-6` | Top-aligned with `pt-4` |
-| Other sentences (`index > 0`) | Flexbox with `justify-center` | Vertically centered in 300px area |
+| File | Change |
+|------|--------|
+| `src/components/AudioPlayer.tsx` | Add `autoPlay` prop with effect to trigger playback |
+| `src/pages/Index.tsx` | Add `shouldAutoPlay` state, pass to AudioPlayer |
+| `src/components/HistorySidebar.tsx` | Pass `autoPlay` flag when Play button clicked |
 
----
-
-## Result
-
-- **First sentence**: Stays at the top of the display with the next sentence below it
-- **All other sentences**: The current sentence is vertically centered, with previous sentences above and next sentences below, automatically adjusting positions to keep the current sentence anchored in the middle of the 300px height
-
+## User Experience After Fix
+- Click project card → Project loads, ready to play manually
+- Click Play button → Project loads AND starts playing immediately
