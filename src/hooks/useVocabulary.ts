@@ -10,7 +10,7 @@ export interface VocabularyStats {
 
 export type SortOption = "frequency" | "alphabetical" | "recent";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 25;
 
 export function useVocabulary() {
   const [words, setWords] = useState<VocabularyWord[]>([]);
@@ -113,7 +113,7 @@ export function useVocabulary() {
         const sorted = [...allWords].sort((a, b) => {
           switch (newSort) {
             case "frequency":
-              return b.count - a.count;
+              return a.count - b.count;
             case "alphabetical":
               return a.word.localeCompare(b.word);
             case "recent":
