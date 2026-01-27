@@ -1,81 +1,69 @@
 
-# History Feature Implementation Plan
+# Fix: Auto-Play Audio When Loading from History Play Button
 
-## Overview
-Add a persistent history sidebar that saves all uploaded audio and caption pairs as "projects" that users can browse, replay, and manage. This transforms PodSync into a desktop-ready app where your work is always saved.
+## The Problem
+When you click the Play button on a project in the history sidebar, it loads the project but doesn't start playing the audio. The Play button currently does the same thing as clicking anywhere on the project card - it just loads the project.
 
-## What You'll Get
-- **History Sidebar**: A slide-out panel showing all your past projects with timestamps
-- **Instant Replay**: Click any project to immediately load and play it
-- **Project Management**: Delete old projects you no longer need
-- **Auto-Save**: Every time you process audio + captions, it automatically saves to history
-- **Persistent Storage**: Uses your browser's built-in database, so data survives page refreshes
+## The Solution
+Add an "auto-play" feature that starts audio playback automatically when you click the Play button (but not when you just click to load).
 
-## User Experience Flow
-1. Upload audio and script files as usual
-2. Click "Generate Preview" - project automatically saves to history
-3. Click the History icon in the header to see all past projects
-4. Click any project to load it instantly
-5. Delete projects with the trash icon
+## How It Will Work
+1. Click the **Play button** → Project loads AND audio starts playing immediately
+2. Click **anywhere else on the card** → Project loads but audio stays paused (current behavior)
 
 ---
 
-## Technical Implementation
+## Technical Changes
 
-### 1. New Component: History Sidebar
-**File**: `src/components/HistorySidebar.tsx`
+### 1. Update AudioPlayer Component
+**File**: `src/components/AudioPlayer.tsx`
 
-Creates a Sheet component (slide-out panel) that:
-- Fetches all projects from IndexedDB on open
-- Displays projects sorted by date (newest first)
-- Shows project name, audio file name, and relative timestamp (e.g., "2 hours ago")
-- Provides load and delete actions for each project
-- Uses existing glass/glow styling for visual consistency
+Add an optional `autoPlay` prop that triggers playback when set to true:
+- New prop: `autoPlay?: boolean`
+- Add a `useEffect` that watches for `autoPlay` and the audio source changes
+- When both conditions are met, call `audio.play()` automatically
 
-### 2. New Hook: useHistory
-**File**: `src/hooks/useHistory.tsx`
-
-A custom hook that manages:
-- Loading all projects from IndexedDB
-- Loading a specific project (fetches linked audio + script data)
-- Deleting projects (cascades to delete orphaned audio/scripts)
-- Refreshing the project list after changes
-
-### 3. Update: useProject Hook
-**File**: `src/hooks/useProject.ts`
-
-Modifications:
-- Remove the localStorage clearing on mount (allow persistence)
-- Add `saveProject()` call when processing files to create a Project record
-- Add `loadProject(projectId)` function to restore a saved project
-- Return the `loadProject` function for the UI to use
-
-### 4. Update: Types
-**File**: `src/types/caption.ts`
-
-Add optional `lastPlayedAt` field to Project interface for tracking recent plays.
-
-### 5. Update: Index Page
+### 2. Update Index Page
 **File**: `src/pages/Index.tsx`
 
-- Add History button to header (next to theme toggles)
-- Import and render HistorySidebar component
-- Connect loadProject callback to restore saved sessions
+Track whether the loaded project should auto-play:
+- New state: `shouldAutoPlay` (boolean)
+- Pass `autoPlay={shouldAutoPlay}` to `AudioPlayer`
+- Reset `shouldAutoPlay` to false after playback starts
+- Update `onLoadProject` callback to accept an optional `autoPlay` parameter
 
-### 6. Update: Database
-**File**: `src/lib/db.ts`
+### 3. Update useProject Hook
+**File**: `src/hooks/useProject.ts`
 
-Add `getProject(id)` function to fetch a single project by ID.
+Modify `loadProject` to accept and return an auto-play flag:
+- Add optional `autoPlay` parameter to `loadProject` function
+- Return this flag so the Index page knows whether to trigger auto-play
+
+### 4. Update HistorySidebar Component
+**File**: `src/components/HistorySidebar.tsx`
+
+Differentiate between "load" and "load & play" actions:
+- Modify `handleLoad` to accept an optional `shouldPlay` parameter
+- When Play button is clicked, pass `shouldPlay: true`
+- When card is clicked, pass `shouldPlay: false` (or omit)
+
+### 5. Update HistorySidebar Props
+**File**: `src/components/HistorySidebar.tsx`
+
+Update the `onLoadProject` callback type to include an auto-play flag:
+- Change from `onLoadProject: (loaded: LoadedProject) => void`
+- Change to `onLoadProject: (loaded: LoadedProject, autoPlay?: boolean) => void`
 
 ---
 
 ## File Changes Summary
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `src/components/HistorySidebar.tsx` | Create | History panel UI |
-| `src/hooks/useHistory.tsx` | Create | History data management |
-| `src/hooks/useProject.ts` | Modify | Add project saving/loading |
-| `src/types/caption.ts` | Modify | Add lastPlayedAt field |
-| `src/pages/Index.tsx` | Modify | Add history button + sidebar |
-| `src/lib/db.ts` | Modify | Add getProject function |
+| File | Change |
+|------|--------|
+| `src/components/AudioPlayer.tsx` | Add `autoPlay` prop with effect to trigger playback |
+| `src/pages/Index.tsx` | Add `shouldAutoPlay` state, pass to AudioPlayer |
+| `src/components/HistorySidebar.tsx` | Pass `autoPlay` flag when Play button clicked |
+
+## User Experience After Fix
+- Click project card → Project loads, ready to play manually
+- Click Play button → Project loads AND starts playing immediately
