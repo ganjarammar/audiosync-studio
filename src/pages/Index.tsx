@@ -7,6 +7,7 @@ import { ColorPicker } from "@/components/ColorPicker";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { HistorySidebar } from "@/components/HistorySidebar";
 import { VocabularyLibrary } from "@/components/VocabularyLibrary";
+import { ScriptSearch } from "@/components/ScriptSearch";
 import { useProject } from "@/hooks/useProject";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +37,15 @@ const Index = () => {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [vocabOpen, setVocabOpen] = useState(false);
   const [shouldAutoPlay, setShouldAutoPlay] = useState(false);
+  const [seekToTime, setSeekToTime] = useState<number | null>(null);
+
+  const handleSeekTo = useCallback((time: number) => {
+    setSeekToTime(time);
+  }, []);
+
+  const handleSeekComplete = useCallback(() => {
+    setSeekToTime(null);
+  }, []);
 
   // Initialize theme on mount
   useEffect(() => {
@@ -80,8 +90,14 @@ const Index = () => {
               }}
             />
             <VocabularyLibrary open={vocabOpen} onOpenChange={setVocabOpen} />
+            {isReady && (
+              <ScriptSearch
+                sentences={sentences}
+                onSeekTo={handleSeekTo}
+                currentTime={currentTime}
+              />
+            )}
             <ColorPicker />
-            <ThemeToggle />
             <ThemeToggle />
             <TooltipProvider>
               <Tooltip>
@@ -115,6 +131,8 @@ const Index = () => {
                 onDurationChange={handleDurationChange}
                 autoPlay={shouldAutoPlay}
                 onAutoPlayTriggered={() => setShouldAutoPlay(false)}
+                seekTo={seekToTime}
+                onSeekComplete={handleSeekComplete}
               />
             </div>
           ) : (
