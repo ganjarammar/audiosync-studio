@@ -16,6 +16,7 @@
     --popover-foreground: 220 30% 10%;
 
     --primary: 190 95% 45%;
+    --primary-dark: 190 80% 35%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 15% 92%;
@@ -57,6 +58,7 @@
     --popover-foreground: 210 20% 95%;
 
     --primary: 190 95% 50%;
+    --primary-dark: 190 80% 40%;
     --primary-foreground: 220 25% 6%;
 
     --secondary: 220 20% 14%;
@@ -136,7 +138,7 @@
 
   /* Gradient backgrounds */
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(190 80% 40%) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-dark)) 100%);
   }
 
   .gradient-dark {

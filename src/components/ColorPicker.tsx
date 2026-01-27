@@ -11,18 +11,19 @@ import { Button } from "@/components/ui/button";
 interface ColorOption {
   name: string;
   hsl: string;
+  hslDark: string; // Darker variant for gradients
   preview: string; // For visual display
 }
 
 const colorOptions: ColorOption[] = [
-  { name: "Cyan", hsl: "190 95% 50%", preview: "hsl(190, 95%, 50%)" },
-  { name: "Purple", hsl: "270 95% 60%", preview: "hsl(270, 95%, 60%)" },
-  { name: "Pink", hsl: "330 90% 60%", preview: "hsl(330, 90%, 60%)" },
-  { name: "Green", hsl: "150 80% 45%", preview: "hsl(150, 80%, 45%)" },
-  { name: "Orange", hsl: "25 95% 55%", preview: "hsl(25, 95%, 55%)" },
-  { name: "Blue", hsl: "220 90% 55%", preview: "hsl(220, 90%, 55%)" },
-  { name: "Red", hsl: "0 85% 55%", preview: "hsl(0, 85%, 55%)" },
-  { name: "Yellow", hsl: "45 95% 55%", preview: "hsl(45, 95%, 55%)" },
+  { name: "Cyan", hsl: "190 95% 50%", hslDark: "190 80% 40%", preview: "hsl(190, 95%, 50%)" },
+  { name: "Purple", hsl: "270 95% 60%", hslDark: "270 80% 45%", preview: "hsl(270, 95%, 60%)" },
+  { name: "Pink", hsl: "330 90% 60%", hslDark: "330 75% 45%", preview: "hsl(330, 90%, 60%)" },
+  { name: "Green", hsl: "150 80% 45%", hslDark: "150 70% 35%", preview: "hsl(150, 80%, 45%)" },
+  { name: "Orange", hsl: "25 95% 55%", hslDark: "25 85% 42%", preview: "hsl(25, 95%, 55%)" },
+  { name: "Blue", hsl: "220 90% 55%", hslDark: "220 80% 42%", preview: "hsl(220, 90%, 55%)" },
+  { name: "Red", hsl: "0 85% 55%", hslDark: "0 75% 42%", preview: "hsl(0, 85%, 55%)" },
+  { name: "Yellow", hsl: "45 95% 55%", hslDark: "45 85% 42%", preview: "hsl(45, 95%, 55%)" },
 ];
 
 export function ColorPicker() {
@@ -37,6 +38,7 @@ export function ColorPicker() {
       document.documentElement;
 
     themeRoot.style.setProperty("--primary", color.hsl);
+    themeRoot.style.setProperty("--primary-dark", color.hslDark);
     themeRoot.style.setProperty("--ring", color.hsl);
     setOpen(false);
   };
