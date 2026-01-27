@@ -25,5 +25,12 @@ export default defineConfig(({ mode }) => ({
     target: process.env.TAURI_ENV_PLATFORM === "windows" ? "chrome105" : "safari13",
     minify: !process.env.TAURI_ENV_DEBUG ? "esbuild" : false,
     sourcemap: !!process.env.TAURI_ENV_DEBUG,
+    rollupOptions: {
+      external: [
+        "@tauri-apps/plugin-updater",
+        "@tauri-apps/plugin-dialog",
+        "@tauri-apps/plugin-process",
+      ],
+    },
   },
 }));
