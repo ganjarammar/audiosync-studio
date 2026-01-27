@@ -27,8 +27,8 @@ function WordHighlight({ word, isActive, isPast, currentTime }: WordHighlightPro
   return (
     <span
       className={cn(
-        "relative inline-block px-3 py-0.5 transition-all duration-150",
-        isActive && "scale-110"
+        "relative inline-block py-0.5 transition-all duration-150",
+        isActive ? "px-4 scale-110" : "px-1"
       )}
     >
       <span
