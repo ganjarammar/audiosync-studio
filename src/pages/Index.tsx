@@ -33,6 +33,7 @@ const Index = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [shouldAutoPlay, setShouldAutoPlay] = useState(false);
 
   // Initialize theme on mount
   useEffect(() => {
@@ -71,7 +72,10 @@ const Index = () => {
             <HistorySidebar
               open={historyOpen}
               onOpenChange={setHistoryOpen}
-              onLoadProject={loadProject}
+              onLoadProject={(loaded, autoPlay) => {
+                loadProject(loaded);
+                setShouldAutoPlay(autoPlay ?? false);
+              }}
             />
             <ColorPicker />
             <ThemeToggle />
@@ -105,6 +109,8 @@ const Index = () => {
                 audioUrl={audioUrl}
                 onTimeUpdate={handleTimeUpdate}
                 onDurationChange={handleDurationChange}
+                autoPlay={shouldAutoPlay}
+                onAutoPlayTriggered={() => setShouldAutoPlay(false)}
               />
             </div>
           ) : (
