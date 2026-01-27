@@ -1,187 +1,324 @@
 
 
-# Smart Caption Text Management Implementation
+# Vocabulary Learning Library Implementation
 
 ## Overview
 
-This plan implements intelligent sentence measurement that dynamically determines how many sentences can fit within a fixed 400px container, ensuring the display never overflows while maximizing visible content.
+This plan implements a vocabulary tracking system that extracts words from SRT/script files, counts their occurrences across all projects, prevents duplicate counting from the same source file, and shows which files each word came from.
 
-## Current Behavior vs. New Behavior
+## What This Feature Does
 
-```text
-CURRENT (problematic):
-┌────────────────────────────────────┐
-│ Previous sentence that is very    │  ↑
-│ long and wraps to multiple lines  │  │ Height varies based
-│ Current sentence being spoken now │  │ on sentence lengths
-│ Next sentence coming up soon      │  │
-└────────────────────────────────────┘  ↓
+When you upload and process a new script file:
+1. All unique words are extracted and cleaned (lowercased, punctuation removed)
+2. New words are added to your vocabulary library
+3. Existing words get their count incremented
+4. The system remembers which script files have been processed to prevent duplicates
+5. Each word shows which source file(s) it came from
 
-NEW (fixed 400px with smart measurement):
-┌────────────────────────────────────┐
-│                                   │  ↑
-│ Previous sentence (if fits)       │  │ 
-│ CURRENT SENTENCE (always shown)   │  │ Fixed 400px
-│ Next sentence (if fits)           │  │
-│                                   │  ↓
-└────────────────────────────────────┘
-```
-
-## Technical Approach
-
-### Measurement Strategy
-
-The component will use a "hidden measurement div" technique:
-
-1. **Create an off-screen measurement container** with identical styles (font size, padding, width)
-2. **Render each sentence into the hidden div** and measure its actual rendered height
-3. **Cache measured heights** for performance (sentences don't change during playback)
-4. **Dynamically calculate** which sentences fit based on measured heights
+## Data Architecture
 
 ```text
-Measurement Flow:
-┌─────────────────────────────────────────────────────────────┐
-│ 1. Component mounts with sentences                          │
-│ 2. Create hidden div (visibility:hidden, position:absolute) │
-│ 3. For each sentence:                                       │
-│    - Render to hidden div                                   │
-│    - Read offsetHeight                                      │
-│    - Store in heightMap: { sentenceIndex → height }         │
-│ 4. Calculate visible sentences based on 400px budget        │
-└─────────────────────────────────────────────────────────────┘
+VOCABULARY STORAGE (IndexedDB)
+
+┌─────────────────────────────────────────────────────────────────┐
+│  "vocabulary" object store                                      │
+│  ─────────────────────────────────────────────────────────────  │
+│  Key: word (lowercase string)                                   │
+│                                                                 │
+│  {                                                              │
+│    word: "example",           // The word itself                │
+│    count: 5,                  // Total occurrences across files │
+│    firstSeenAt: 1705123456,   // Timestamp first encountered    │
+│    lastSeenAt: 1705234567,    // Timestamp last encountered     │
+│    sources: [                 // File-level references          │
+│      { scriptId: "id1", fileName: "podcast_ep1.srt" },          │
+│      { scriptId: "id2", fileName: "interview_2024.srt" }        │
+│    ]                                                            │
+│  }                                                              │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│  "processedScripts" object store                                │
+│  ─────────────────────────────────────────────────────────────  │
+│  Key: scriptId                                                  │
+│                                                                 │
+│  {                                                              │
+│    scriptId: "abc-123",       // Same as script.id from db      │
+│    fileName: "podcast_ep1.srt", // Original file name           │
+│    processedAt: 1705123456,   // When vocabulary was extracted  │
+│    wordCount: 150             // Total words extracted          │
+│  }                                                              │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### Visibility Calculation Algorithm
+## Source Reference Structure
+
+Each word tracks its sources at the FILE level only (not word position):
 
 ```text
-Available height: 400px - padding (p-8 = 32px × 2 = 64px) = 336px usable
+Word: "technology"
+├── Count: 12 (total times seen across all files)
+└── Sources:
+    ├── podcast_ep1.srt
+    ├── interview_2024.srt
+    └── lecture_notes.srt
 
-Priority order:
-1. CURRENT sentence (always shown, regardless of height)
-2. PREVIOUS sentence (if remaining space allows)
-3. NEXT sentence (if remaining space allows)
-4. Additional context sentences (if still room)
-
-Example calculation:
-- Total budget: 336px
-- Current sentence height: 80px → remaining: 256px
-- Previous sentence height: 70px → remaining: 186px → SHOW
-- Next sentence height: 90px → remaining: 96px → SHOW
-- Sentence before previous: 85px → not enough space → HIDE
+UI Display:
+┌─────────────────────────────────────────┐
+│ technology                    ×12       │
+│ Sources: podcast_ep1.srt, interview... │
+└─────────────────────────────────────────┘
 ```
 
-### Responsive Width Handling
+## Duplicate Prevention Logic
 
-Sentence heights change based on container width (text wrapping). The implementation will:
+```text
+User uploads "podcast_ep1.srt" → Script ID: "abc-123"
+                    ↓
+┌──────────────────────────────────────────────────────┐
+│ Check: Is "abc-123" in processedScripts?             │
+│                                                      │
+│   NO  → Extract words → Update vocabulary → Mark as  │
+│         processed                                    │
+│                                                      │
+│   YES → Skip vocabulary extraction (already counted) │
+└──────────────────────────────────────────────────────┘
+```
 
-1. Use `ResizeObserver` on the container
-2. Re-measure heights when width changes
-3. Recalculate visible sentences
+## Word Processing Rules
+
+- Convert to lowercase: "Hello" → "hello"
+- Remove punctuation: "world!" → "world"
+- Keep contractions: "don't" → "don't"
+- Remove numbers-only words: "123" → skipped
+- Minimum length: 2+ characters
 
 ---
 
 ## Implementation Details
 
-### File: `src/components/CaptionDisplay.tsx`
+### 1. New Type Definitions
 
-**Changes:**
+**File: `src/types/caption.ts`**
 
-1. **Add new hooks and refs:**
-   - `containerRef` - Reference to the main container for width observation
-   - `measureRef` - Reference to hidden measurement div
-   - `heightMapRef` - Cached sentence heights
+```typescript
+export interface WordSource {
+  scriptId: string;
+  fileName: string;
+}
 
-2. **Add measurement effect:**
-   - Creates hidden div with matching styles
-   - Measures each sentence's rendered height
-   - Stores results in a Map
+export interface VocabularyWord {
+  word: string;
+  count: number;
+  firstSeenAt: number;
+  lastSeenAt: number;
+  sources: WordSource[];  // File-level references only
+}
 
-3. **Replace fixed window logic:**
-   - Current: `slice(startIdx, startIdx + 3)` (always 3 sentences)
-   - New: Calculate based on measured heights and available space
+export interface ProcessedScript {
+  scriptId: string;
+  fileName: string;
+  processedAt: number;
+  wordCount: number;
+}
+```
 
-4. **Add ResizeObserver:**
-   - Watch container width changes
-   - Trigger re-measurement when width changes
+### 2. Database Schema Update
 
-5. **Update container styles:**
-   - Change `min-h-[300px]` to `h-[400px]`
-   - Keep `overflow-hidden`
-   - Add flex layout for vertical centering (per existing memory)
+**File: `src/lib/db.ts`**
 
-### New Component Structure
+- Increment `DB_VERSION` from 1 to 2
+- Add migration for new object stores:
+  - `vocabulary` (keyPath: "word")
+  - `processedScripts` (keyPath: "scriptId")
+- Add CRUD functions:
+  - `getVocabularyWord(word)`
+  - `getAllVocabulary()`
+  - `saveVocabularyWord(entry)`
+  - `isScriptProcessed(scriptId)`
+  - `markScriptProcessed(entry)`
+  - `getVocabularyStats()`
 
-```text
-<div ref={containerRef} className="h-[400px] overflow-hidden ...">
-  {/* Hidden measurement div */}
-  <div ref={measureRef} className="invisible absolute ..." aria-hidden>
-    {/* Sentences rendered here for measurement */}
-  </div>
+### 3. Word Extraction Utility
+
+**New File: `src/lib/vocabularyProcessor.ts`**
+
+```typescript
+export function extractWordsFromScript(script: Script): Map<string, number> {
+  const wordCounts = new Map<string, number>();
   
-  {/* Visible content area */}
-  <div className="flex flex-col justify-center h-full">
-    {/* Gradient overlays */}
-    {/* Dynamically calculated visible sentences */}
-  </div>
-</div>
+  for (const sentence of script.sentences) {
+    const words = sentence.text.split(/\s+/);
+    for (const rawWord of words) {
+      const cleaned = cleanWord(rawWord);
+      if (isValidWord(cleaned)) {
+        wordCounts.set(cleaned, (wordCounts.get(cleaned) || 0) + 1);
+      }
+    }
+  }
+  
+  return wordCounts;
+}
+
+function cleanWord(word: string): string {
+  // Remove leading/trailing punctuation, keep internal apostrophes
+  return word.toLowerCase().replace(/^[^\w']+|[^\w']+$/g, '');
+}
+
+function isValidWord(word: string): boolean {
+  return word.length >= 2 && !/^\d+$/.test(word);
+}
 ```
 
-### State & Logic Flow
+### 4. Vocabulary Update Function
+
+**File: `src/lib/vocabularyProcessor.ts`**
+
+```typescript
+export async function processScriptForVocabulary(
+  script: Script
+): Promise<{ newWords: number; updatedWords: number; skipped: boolean }> {
+  
+  // Check if already processed
+  if (await isScriptProcessed(script.id)) {
+    return { newWords: 0, updatedWords: 0, skipped: true };
+  }
+  
+  const wordCounts = extractWordsFromScript(script);
+  const source: WordSource = { scriptId: script.id, fileName: script.name };
+  
+  let newWords = 0;
+  let updatedWords = 0;
+  
+  for (const [word, count] of wordCounts) {
+    const existing = await getVocabularyWord(word);
+    
+    if (existing) {
+      await saveVocabularyWord({
+        ...existing,
+        count: existing.count + count,
+        lastSeenAt: Date.now(),
+        sources: [...existing.sources, source],  // Add file source
+      });
+      updatedWords++;
+    } else {
+      await saveVocabularyWord({
+        word,
+        count,
+        firstSeenAt: Date.now(),
+        lastSeenAt: Date.now(),
+        sources: [source],  // Initial source
+      });
+      newWords++;
+    }
+  }
+  
+  // Mark script as processed
+  await markScriptProcessed({
+    scriptId: script.id,
+    fileName: script.name,
+    processedAt: Date.now(),
+    wordCount: wordCounts.size,
+  });
+  
+  return { newWords, updatedWords, skipped: false };
+}
+```
+
+### 5. Vocabulary Hook
+
+**New File: `src/hooks/useVocabulary.ts`**
+
+```typescript
+export function useVocabulary() {
+  const [words, setWords] = useState<VocabularyWord[]>([]);
+  const [stats, setStats] = useState({ 
+    totalUniqueWords: 0, 
+    totalOccurrences: 0,
+    totalSources: 0 
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  const refresh = useCallback(async () => {
+    setIsLoading(true);
+    const allWords = await getAllVocabulary();
+    // Sort by frequency (highest first)
+    setWords(allWords.sort((a, b) => b.count - a.count));
+    
+    // Calculate stats
+    const totalOccurrences = allWords.reduce((sum, w) => sum + w.count, 0);
+    const allSources = new Set(allWords.flatMap(w => w.sources.map(s => s.scriptId)));
+    
+    setStats({
+      totalUniqueWords: allWords.length,
+      totalOccurrences,
+      totalSources: allSources.size,
+    });
+    setIsLoading(false);
+  }, []);
+
+  return { words, stats, isLoading, refresh };
+}
+```
+
+### 6. Vocabulary Display Component
+
+**New File: `src/components/VocabularyLibrary.tsx`**
+
+A slide-out sheet (similar to HistorySidebar) showing:
 
 ```text
-sentences + currentSentenceIndex
-        ↓
-┌───────────────────┐
-│  measureHeights() │ ← Triggered on mount + resize
-└─────────┬─────────┘
-          ↓
-    heightMap (cached)
-          ↓
-┌─────────────────────────────┐
-│  calculateVisibleSentences() │
-│  - Start with current        │
-│  - Add previous if fits      │
-│  - Add next if fits          │
-│  - Continue until budget = 0 │
-└─────────────────────────────┘
-          ↓
-  visibleSentences array
-          ↓
-      Render only those
+┌─────────────────────────────────────────────────────┐
+│  📚 Vocabulary Library                    [X Close] │
+├─────────────────────────────────────────────────────┤
+│  Stats: 1,234 words | 5,678 occurrences | 8 files   │
+├─────────────────────────────────────────────────────┤
+│  🔍 Search words...                                 │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│  ┌─────────────────────────────────────────────┐   │
+│  │ technology                           ×12     │   │
+│  │ Sources: podcast_ep1.srt, interview.srt      │   │
+│  └─────────────────────────────────────────────┘   │
+│                                                     │
+│  ┌─────────────────────────────────────────────┐   │
+│  │ development                          ×8      │   │
+│  │ Sources: lecture_notes.srt                   │   │
+│  └─────────────────────────────────────────────┘   │
+│                                                     │
+│  ... (scrollable list)                              │
+└─────────────────────────────────────────────────────┘
 ```
 
----
+Features:
+- Search/filter words
+- Show count badge
+- Expandable source list (shows "podcast_ep1.srt, +2 more" if many sources)
+- Sort by: frequency, alphabetical, recently added
 
-## Visual Centering Logic
+### 7. Integration Points
 
-Per existing project memory, the current sentence should be vertically centered (except for the first sentence which stays top-aligned). The implementation will:
+**File: `src/hooks/useProject.ts`**
 
-1. Calculate the vertical position to center the current sentence
-2. Use flexbox `justify-center` for the sentence container
-3. Apply conditional alignment for the first sentence
+Add vocabulary processing after script save:
 
----
+```typescript
+// After saving script
+await saveScript(scriptData);
 
-## Technical Notes
+// Process vocabulary
+const vocabResult = await processScriptForVocabulary(scriptData);
 
-### Performance Considerations
+// Could show toast: "Added 45 new words to library"
+```
 
-- **Measurement caching**: Heights are only re-measured when sentences change or container width changes
-- **Memoization**: `visibleSentences` calculation is wrapped in `useMemo`
-- **No layout thrashing**: Hidden div uses `visibility: hidden` (not `display: none`) to allow measurement without reflow
+**File: `src/pages/Index.tsx`**
 
-### Edge Cases Handled
+Add vocabulary button to header (Book icon):
 
-1. **Single sentence longer than container**: Still shown, content clips gracefully with gradient overlay
-2. **Very short sentences**: More sentences become visible automatically
-3. **Responsive breakpoints**: Re-measurement handles font size changes (`text-2xl md:text-3xl`)
-4. **First/last sentence**: Proper boundary handling without array overflow
-
-### Gap Spacing
-
-The current `space-y-8` (32px gap) must be accounted for in height calculations:
-- Each additional sentence adds its height + 32px gap
-- Budget calculation: `remaining - sentenceHeight - 32`
+```tsx
+<VocabularyLibrary open={vocabOpen} onOpenChange={setVocabOpen} />
+```
 
 ---
 
@@ -189,15 +326,25 @@ The current `space-y-8` (32px gap) must be accounted for in height calculations:
 
 | File | Action | Description |
 |------|--------|-------------|
-| `src/components/CaptionDisplay.tsx` | Modify | Add measurement system, resize observer, dynamic visibility calculation, fixed 400px height |
+| `src/types/caption.ts` | Modify | Add VocabularyWord, WordSource, ProcessedScript interfaces |
+| `src/lib/db.ts` | Modify | Upgrade DB version to 2, add vocabulary stores and CRUD |
+| `src/lib/vocabularyProcessor.ts` | Create | Word extraction, cleaning, and vocabulary update logic |
+| `src/hooks/useVocabulary.ts` | Create | React hook for vocabulary state |
+| `src/hooks/useProject.ts` | Modify | Integrate vocabulary processing |
+| `src/components/VocabularyLibrary.tsx` | Create | UI sheet to display word library with sources |
+| `src/pages/Index.tsx` | Modify | Add vocabulary button to header |
 
 ---
 
-## Expected Behavior After Implementation
+## User Experience Flow
 
-1. **Fixed height**: Container stays exactly 400px regardless of content
-2. **Smart fitting**: Shows maximum sentences that fit without overflow
-3. **Current sentence priority**: Always visible, centered (except first)
-4. **Responsive**: Adjusts automatically when window resizes
-5. **Smooth experience**: No jarring height changes during playback
+```text
+1. User uploads audio + "podcast_ep1.srt"
+2. Clicks "Generate Preview"
+3. System processes files AND extracts vocabulary
+4. Toast: "Added 245 new words to your library!"
+5. User clicks 📚 button → sees vocabulary sheet
+6. Each word shows count + source file names
+7. If same file uploaded again → skipped (no duplicates)
+```
 
