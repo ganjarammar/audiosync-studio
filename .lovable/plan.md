@@ -1,69 +1,55 @@
 
-# Fix: Auto-Play Audio When Loading from History Play Button
+# Fix Caption Display to Have a Fixed Height
 
-## The Problem
-When you click the Play button on a project in the history sidebar, it loads the project but doesn't start playing the audio. The Play button currently does the same thing as clicking anywhere on the project card - it just loads the project.
+## Problem
+The caption display area currently uses `min-h-[300px]`, which sets a **minimum** height but allows the container to expand when there are more or longer sentences. You want a rigid, constant height that stays at 300px regardless of content.
 
-## The Solution
-Add an "auto-play" feature that starts audio playback automatically when you click the Play button (but not when you just click to load).
-
-## How It Will Work
-1. Click the **Play button** → Project loads AND audio starts playing immediately
-2. Click **anywhere else on the card** → Project loads but audio stays paused (current behavior)
+## Solution
+Change the CaptionDisplay component to use a fixed height (`h-[300px]`) instead of a minimum height, and ensure overflow is properly clipped. The existing gradient overlays at top and bottom will help mask the clipped content for a polished look.
 
 ---
 
-## Technical Changes
+## Changes Required
 
-### 1. Update AudioPlayer Component
-**File**: `src/components/AudioPlayer.tsx`
+### File: `src/components/CaptionDisplay.tsx`
 
-Add an optional `autoPlay` prop that triggers playback when set to true:
-- New prop: `autoPlay?: boolean`
-- Add a `useEffect` that watches for `autoPlay` and the audio source changes
-- When both conditions are met, call `audio.play()` automatically
+**Line 87 (Empty state):**
+- Change `min-h-[300px]` to `h-[300px]`
 
-### 2. Update Index Page
-**File**: `src/pages/Index.tsx`
-
-Track whether the loaded project should auto-play:
-- New state: `shouldAutoPlay` (boolean)
-- Pass `autoPlay={shouldAutoPlay}` to `AudioPlayer`
-- Reset `shouldAutoPlay` to false after playback starts
-- Update `onLoadProject` callback to accept an optional `autoPlay` parameter
-
-### 3. Update useProject Hook
-**File**: `src/hooks/useProject.ts`
-
-Modify `loadProject` to accept and return an auto-play flag:
-- Add optional `autoPlay` parameter to `loadProject` function
-- Return this flag so the Index page knows whether to trigger auto-play
-
-### 4. Update HistorySidebar Component
-**File**: `src/components/HistorySidebar.tsx`
-
-Differentiate between "load" and "load & play" actions:
-- Modify `handleLoad` to accept an optional `shouldPlay` parameter
-- When Play button is clicked, pass `shouldPlay: true`
-- When card is clicked, pass `shouldPlay: false` (or omit)
-
-### 5. Update HistorySidebar Props
-**File**: `src/components/HistorySidebar.tsx`
-
-Update the `onLoadProject` callback type to include an auto-play flag:
-- Change from `onLoadProject: (loaded: LoadedProject) => void`
-- Change to `onLoadProject: (loaded: LoadedProject, autoPlay?: boolean) => void`
+**Line 94 (Main caption container):**
+- Change `min-h-[300px]` to `h-[300px]`
+- The existing `overflow-hidden` class will clip any content that exceeds the fixed height
 
 ---
 
-## File Changes Summary
+## Visual Result
 
-| File | Change |
-|------|--------|
-| `src/components/AudioPlayer.tsx` | Add `autoPlay` prop with effect to trigger playback |
-| `src/pages/Index.tsx` | Add `shouldAutoPlay` state, pass to AudioPlayer |
-| `src/components/HistorySidebar.tsx` | Pass `autoPlay` flag when Play button clicked |
+```text
+Before (min-h-[300px]):
+┌────────────────────────────────────┐
+│  Sentence 1                        │
+│  Sentence 2                        │  ← Height grows
+│  Sentence 3 (very long text...)    │     with content
+│  ...continues expanding...          │
+└────────────────────────────────────┘
 
-## User Experience After Fix
-- Click project card → Project loads, ready to play manually
-- Click Play button → Project loads AND starts playing immediately
+After (h-[300px]):
+┌────────────────────────────────────┐
+│  ░░░ gradient fade ░░░             │
+│  Sentence 1                        │  ← Fixed 300px
+│  Sentence 2 (current)              │     always
+│  Sentence 3 (clipped if needed)    │
+│  ░░░ gradient fade ░░░             │
+└────────────────────────────────────┘
+```
+
+---
+
+## Technical Details
+
+| Location | Current | New |
+|----------|---------|-----|
+| Line 87 (empty state) | `min-h-[300px]` | `h-[300px]` |
+| Line 94 (main container) | `min-h-[300px]` | `h-[300px]` |
+
+The gradient overlays already in place (lines 96-97) will create a smooth fade effect at the top and bottom, making the clipped content look intentional and polished.
