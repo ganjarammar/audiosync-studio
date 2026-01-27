@@ -114,11 +114,11 @@ const Index = () => {
               />
             </div>
           ) : (
-            <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl glass p-12">
-              <div className="h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center mb-6">
+            <div className="flex h-[300px] flex-col items-center justify-center rounded-2xl glass p-12 overflow-hidden">
+              <div className="h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center mb-6 flex-shrink-0">
                 <Mic className="h-8 w-8 text-muted-foreground/50" />
               </div>
-              <p className="text-lg text-muted-foreground text-center">
+              <p className="text-lg text-muted-foreground text-center line-clamp-2">
                 Upload files to preview captions
               </p>
             </div>
