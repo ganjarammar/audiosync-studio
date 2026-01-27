@@ -2,9 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Modern dark-first design system with cyan/blue accents */
 
 @layer base {
   :root {
@@ -17,7 +15,7 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 220 30% 10%;
 
-    --primary: 250 85% 60%;
+    --primary: 190 95% 45%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 15% 92%;
@@ -26,65 +24,65 @@ All colors MUST be HSL.
     --muted: 220 15% 94%;
     --muted-foreground: 220 15% 45%;
 
-    --accent: 250 60% 95%;
-    --accent-foreground: 250 85% 45%;
+    --accent: 190 60% 95%;
+    --accent-foreground: 190 95% 35%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 220 15% 88%;
     --input: 220 15% 88%;
-    --ring: 250 85% 60%;
+    --ring: 190 95% 45%;
 
     --radius: 0.75rem;
 
     --sidebar-background: 220 20% 97%;
     --sidebar-foreground: 220 15% 40%;
-    --sidebar-primary: 250 85% 60%;
+    --sidebar-primary: 190 95% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 250 60% 95%;
-    --sidebar-accent-foreground: 250 85% 45%;
+    --sidebar-accent: 190 60% 95%;
+    --sidebar-accent-foreground: 190 95% 35%;
     --sidebar-border: 220 15% 88%;
-    --sidebar-ring: 250 85% 60%;
+    --sidebar-ring: 190 95% 45%;
   }
 
   .dark {
-    --background: 230 25% 8%;
-    --foreground: 220 15% 95%;
+    --background: 220 25% 6%;
+    --foreground: 210 20% 95%;
 
-    --card: 230 25% 12%;
-    --card-foreground: 220 15% 95%;
+    --card: 220 25% 9%;
+    --card-foreground: 210 20% 95%;
 
-    --popover: 230 25% 12%;
-    --popover-foreground: 220 15% 95%;
+    --popover: 220 25% 9%;
+    --popover-foreground: 210 20% 95%;
 
-    --primary: 250 85% 65%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 190 95% 50%;
+    --primary-foreground: 220 25% 6%;
 
-    --secondary: 230 20% 18%;
-    --secondary-foreground: 220 15% 90%;
+    --secondary: 220 20% 14%;
+    --secondary-foreground: 210 20% 90%;
 
-    --muted: 230 20% 16%;
-    --muted-foreground: 220 15% 60%;
+    --muted: 220 20% 12%;
+    --muted-foreground: 210 15% 55%;
 
-    --accent: 250 40% 20%;
-    --accent-foreground: 250 85% 75%;
+    --accent: 190 50% 15%;
+    --accent-foreground: 190 95% 65%;
 
     --destructive: 0 75% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 230 20% 18%;
-    --input: 230 20% 18%;
-    --ring: 250 85% 65%;
+    --border: 220 20% 14%;
+    --input: 220 20% 14%;
+    --ring: 190 95% 50%;
 
-    --sidebar-background: 230 25% 10%;
-    --sidebar-foreground: 220 15% 80%;
-    --sidebar-primary: 250 85% 65%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 250 40% 20%;
-    --sidebar-accent-foreground: 250 85% 75%;
-    --sidebar-border: 230 20% 18%;
-    --sidebar-ring: 250 85% 65%;
+    --sidebar-background: 220 25% 8%;
+    --sidebar-foreground: 210 15% 70%;
+    --sidebar-primary: 190 95% 50%;
+    --sidebar-primary-foreground: 220 25% 6%;
+    --sidebar-accent: 190 50% 15%;
+    --sidebar-accent-foreground: 190 95% 65%;
+    --sidebar-border: 220 20% 14%;
+    --sidebar-ring: 190 95% 50%;
   }
 }
 
@@ -95,5 +93,53 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Default to dark mode */
+  :root {
+    color-scheme: dark;
+  }
+}
+
+@layer utilities {
+  /* Glassmorphism effect */
+  .glass {
+    @apply bg-card/60 backdrop-blur-xl border border-border/50;
+  }
+
+  /* Glow effects */
+  .glow-text {
+    text-shadow: 0 0 20px hsl(var(--primary) / 0.6),
+                 0 0 40px hsl(var(--primary) / 0.3);
+  }
+
+  .glow-box {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.3),
+                0 0 40px hsl(var(--primary) / 0.15);
+  }
+
+  /* Subtle pulse animation */
+  @keyframes subtle-pulse {
+    0%, 100% { 
+      opacity: 1;
+      box-shadow: 0 0 20px hsl(var(--primary) / 0.4);
+    }
+    50% { 
+      opacity: 0.9;
+      box-shadow: 0 0 30px hsl(var(--primary) / 0.6);
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: subtle-pulse 2s ease-in-out infinite;
+  }
+
+  /* Gradient backgrounds */
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(190 80% 40%) 100%);
+  }
+
+  .gradient-dark {
+    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(220 30% 4%) 100%);
   }
 }
