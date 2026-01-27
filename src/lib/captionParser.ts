@@ -176,6 +176,7 @@ export function findCurrentWord(
   sentences: Sentence[],
   currentTime: number
 ): { sentence: Sentence | null; wordIndex: number; word: Word | null } {
+  // First, check if we're within a sentence
   for (const sentence of sentences) {
     if (currentTime >= sentence.startTime && currentTime <= sentence.endTime) {
       for (let i = 0; i < sentence.words.length; i++) {
@@ -193,5 +194,40 @@ export function findCurrentWord(
       return { sentence, wordIndex: sentence.words.length - 1, word: sentence.words[sentence.words.length - 1] };
     }
   }
+  
+  // If we're in a gap between sentences, hold the previous sentence's final state
+  for (let i = 0; i < sentences.length - 1; i++) {
+    const currentSentence = sentences[i];
+    const nextSentence = sentences[i + 1];
+    
+    // Check if we're in the gap between this sentence and the next
+    if (currentTime > currentSentence.endTime && currentTime < nextSentence.startTime) {
+      const lastWord = currentSentence.words[currentSentence.words.length - 1];
+      return { 
+        sentence: currentSentence, 
+        wordIndex: currentSentence.words.length - 1, 
+        word: lastWord 
+      };
+    }
+  }
+  
+  // Check if we're before the first sentence
+  if (sentences.length > 0 && currentTime < sentences[0].startTime) {
+    return { sentence: null, wordIndex: -1, word: null };
+  }
+  
+  // Check if we're after the last sentence - hold the last sentence's final state
+  if (sentences.length > 0) {
+    const lastSentence = sentences[sentences.length - 1];
+    if (currentTime > lastSentence.endTime) {
+      const lastWord = lastSentence.words[lastSentence.words.length - 1];
+      return { 
+        sentence: lastSentence, 
+        wordIndex: lastSentence.words.length - 1, 
+        word: lastWord 
+      };
+    }
+  }
+  
   return { sentence: null, wordIndex: -1, word: null };
 }
