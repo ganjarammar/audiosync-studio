@@ -72,31 +72,100 @@ export function interpolateWordTimestamps(
   return result;
 }
 
+export function parseSrtTimestamp(timestamp: string): number {
+  // SRT format: HH:MM:SS,mmm or HH:MM:SS.mmm
+  const normalized = timestamp.trim().replace(",", ".");
+  return parseTimestamp(normalized);
+}
+
 export function parseScript(content: string): Sentence[] {
   const lines = content.trim().split("\n");
   const sentences: Sentence[] = [];
   
-  // Pattern: [timestamp - timestamp] text
-  const pattern = /\[([^\]]+)\s*-\s*([^\]]+)\]\s*(.+)/;
+  // Pattern 1: [timestamp - timestamp] text (bracket format)
+  const bracketPattern = /\[([^\]]+)\s*-\s*([^\]]+)\]\s*(.+)/;
   
+  // Pattern 2: SRT format - timestamp --> timestamp (on its own line)
+  const srtTimestampPattern = /^(\d{1,2}:\d{2}:\d{2}[,\.]\d{3})\s*-->\s*(\d{1,2}:\d{2}:\d{2}[,\.]\d{3})$/;
+  
+  // Try bracket format first
+  let useBracketFormat = false;
   for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    
-    const match = trimmed.match(pattern);
-    if (match) {
-      const [, startStr, endStr, text] = match;
-      const startTime = parseTimestamp(startStr);
-      const endTime = parseTimestamp(endStr);
+    if (bracketPattern.test(line.trim())) {
+      useBracketFormat = true;
+      break;
+    }
+  }
+  
+  if (useBracketFormat) {
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
       
-      const words = interpolateWordTimestamps(text, startTime, endTime);
+      const match = trimmed.match(bracketPattern);
+      if (match) {
+        const [, startStr, endStr, text] = match;
+        const startTime = parseTimestamp(startStr);
+        const endTime = parseTimestamp(endStr);
+        
+        const words = interpolateWordTimestamps(text, startTime, endTime);
+        
+        sentences.push({
+          text: text.trim(),
+          startTime,
+          endTime,
+          words,
+        });
+      }
+    }
+  } else {
+    // Parse SRT format
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i].trim();
       
-      sentences.push({
-        text: text.trim(),
-        startTime,
-        endTime,
-        words,
-      });
+      // Skip empty lines and sequence numbers
+      if (!line || /^\d+$/.test(line)) {
+        i++;
+        continue;
+      }
+      
+      // Check for timestamp line
+      const timestampMatch = line.match(srtTimestampPattern);
+      if (timestampMatch) {
+        const [, startStr, endStr] = timestampMatch;
+        const startTime = parseSrtTimestamp(startStr);
+        const endTime = parseSrtTimestamp(endStr);
+        
+        // Collect text lines until empty line or next sequence number
+        const textLines: string[] = [];
+        i++;
+        while (i < lines.length) {
+          const textLine = lines[i].trim();
+          if (!textLine || /^\d+$/.test(textLine)) {
+            break;
+          }
+          // Skip if it's another timestamp line
+          if (srtTimestampPattern.test(textLine)) {
+            break;
+          }
+          textLines.push(textLine);
+          i++;
+        }
+        
+        const text = textLines.join(" ").trim();
+        if (text) {
+          const words = interpolateWordTimestamps(text, startTime, endTime);
+          sentences.push({
+            text,
+            startTime,
+            endTime,
+            words,
+          });
+        }
+      } else {
+        i++;
+      }
     }
   }
   
