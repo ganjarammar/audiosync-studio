@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { formatTimestamp } from "@/lib/captionParser";
 import { cn } from "@/lib/utils";
+import { AudioWaveform } from "./AudioWaveform";
 
 interface AudioPlayerProps {
   audioUrl: string;
@@ -121,14 +122,17 @@ export function AudioPlayer({
 
   return (
     <div 
-      className="glass rounded-2xl p-4 transition-all duration-300"
+      className="glass rounded-2xl p-4 transition-all duration-300 relative overflow-hidden"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      {/* Waveform visualizer background */}
+      <AudioWaveform audioRef={audioRef} isPlaying={isPlaying} />
+      
       <audio ref={audioRef} src={audioUrl} preload="metadata" />
 
       {/* Progress bar */}
-      <div className="mb-4">
+      <div className="mb-4 relative z-10">
         <Slider
           value={[currentTime]}
           max={duration || 100}
@@ -143,7 +147,7 @@ export function AudioPlayer({
       </div>
 
       {/* Controls */}
-      <div className="flex items-center justify-center gap-2">
+      <div className="flex items-center justify-center gap-2 relative z-10">
         {/* Skip back - show on hover */}
         <Button
           variant="ghost"
