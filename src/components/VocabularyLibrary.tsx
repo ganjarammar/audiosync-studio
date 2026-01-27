@@ -37,20 +37,27 @@ import {
 } from "@/components/ui/collapsible";
 import { useVocabulary, SortOption } from "@/hooks/useVocabulary";
 import { VocabularyWord } from "@/types/caption";
+import { WordDetailDialog } from "@/components/WordDetailDialog";
 
 interface VocabularyLibraryProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-function WordCard({ word }: { word: VocabularyWord }) {
-  const [sourcesOpen, setSourcesOpen] = useState(false);
+interface WordCardProps {
+  word: VocabularyWord;
+  onClick: () => void;
+}
+
+function WordCard({ word, onClick }: WordCardProps) {
   const sourceCount = word.sources.length;
   const displaySources = word.sources.slice(0, 2);
-  const hasMoreSources = sourceCount > 2;
 
   return (
-    <div className="rounded-lg border bg-card p-3 space-y-2">
+    <button
+      onClick={onClick}
+      className="w-full text-left rounded-lg border bg-card p-3 space-y-2 hover:bg-accent/50 hover:border-primary/30 transition-colors cursor-pointer"
+    >
       <div className="flex items-center justify-between">
         <span className="font-medium text-foreground">{word.word}</span>
         <Badge variant="secondary" className="text-xs">
@@ -58,46 +65,14 @@ function WordCard({ word }: { word: VocabularyWord }) {
         </Badge>
       </div>
 
-      <Collapsible open={sourcesOpen} onOpenChange={setSourcesOpen}>
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <span>Sources:</span>
-          {!sourcesOpen && (
-            <>
-              <span className="truncate max-w-[150px]">
-                {displaySources.map((s) => s.fileName).join(", ")}
-              </span>
-              {hasMoreSources && (
-                <CollapsibleTrigger asChild>
-                  <button className="text-primary hover:underline ml-1">
-                    +{sourceCount - 2} more
-                  </button>
-                </CollapsibleTrigger>
-              )}
-            </>
-          )}
-          {sourcesOpen && (
-            <CollapsibleTrigger asChild>
-              <button className="text-primary hover:underline">
-                hide
-              </button>
-            </CollapsibleTrigger>
-          )}
-        </div>
-        <CollapsibleContent className="mt-2">
-          <div className="flex flex-wrap gap-1">
-            {word.sources.map((source, idx) => (
-              <Badge
-                key={`${source.scriptId}-${idx}`}
-                variant="outline"
-                className="text-xs"
-              >
-                {source.fileName}
-              </Badge>
-            ))}
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
-    </div>
+      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <span>Sources:</span>
+        <span className="truncate max-w-[200px]">
+          {displaySources.map((s) => s.fileName).join(", ")}
+          {sourceCount > 2 && ` +${sourceCount - 2} more`}
+        </span>
+      </div>
+    </button>
   );
 }
 
@@ -120,6 +95,9 @@ export function VocabularyLibrary({
     clearAllVocabulary,
   } = useVocabulary();
 
+  const [selectedWord, setSelectedWord] = useState<VocabularyWord | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
   // Refresh vocabulary when sheet opens
   useEffect(() => {
     if (open) {
@@ -129,6 +107,11 @@ export function VocabularyLibrary({
 
   const handleClear = async () => {
     await clearAllVocabulary();
+  };
+
+  const handleWordClick = (word: VocabularyWord) => {
+    setSelectedWord(word);
+    setDetailOpen(true);
   };
 
   return (
@@ -226,7 +209,7 @@ export function VocabularyLibrary({
           ) : (
             <div className="space-y-2 pb-4">
               {words.map((word) => (
-                <WordCard key={word.word} word={word} />
+                <WordCard key={word.word} word={word} onClick={() => handleWordClick(word)} />
               ))}
               
               {/* Load More Button */}
@@ -250,6 +233,12 @@ export function VocabularyLibrary({
             </div>
           )}
         </ScrollArea>
+
+        <WordDetailDialog
+          word={selectedWord}
+          open={detailOpen}
+          onOpenChange={setDetailOpen}
+        />
       </SheetContent>
     </Sheet>
   );

@@ -293,8 +293,8 @@ export async function getVocabularyPage(
     request.onerror = () => reject(request.error);
     request.onsuccess = () => {
       const allWords = request.result as VocabularyWord[];
-      // Sort by frequency descending (default sort)
-      allWords.sort((a, b) => b.count - a.count);
+      // Sort by frequency ascending (least first - default sort)
+      allWords.sort((a, b) => a.count - b.count);
       // Return the requested page
       resolve(allWords.slice(offset, offset + limit));
     };
