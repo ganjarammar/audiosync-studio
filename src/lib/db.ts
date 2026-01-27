@@ -241,3 +241,62 @@ export async function clearVocabulary(): Promise<void> {
     transaction.onerror = () => reject(transaction.error);
   });
 }
+
+// Get vocabulary stats without loading all words into memory
+export async function getVocabularyStats(): Promise<{
+  totalWords: number;
+  totalOccurrences: number;
+  totalSources: number;
+}> {
+  const database = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(["vocabulary"], "readonly");
+    const store = transaction.objectStore("vocabulary");
+    
+    let totalWords = 0;
+    let totalOccurrences = 0;
+    const allSources = new Set<string>();
+    
+    const request = store.openCursor();
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = (event) => {
+      const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+      if (cursor) {
+        const word = cursor.value as VocabularyWord;
+        totalWords++;
+        totalOccurrences += word.count;
+        word.sources.forEach(s => allSources.add(s.scriptId));
+        cursor.continue();
+      } else {
+        resolve({
+          totalWords,
+          totalOccurrences,
+          totalSources: allSources.size,
+        });
+      }
+    };
+  });
+}
+
+// Get paginated vocabulary sorted by frequency (descending)
+export async function getVocabularyPage(
+  offset: number,
+  limit: number
+): Promise<VocabularyWord[]> {
+  const database = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(["vocabulary"], "readonly");
+    const store = transaction.objectStore("vocabulary");
+    const request = store.getAll();
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const allWords = request.result as VocabularyWord[];
+      // Sort by frequency descending (default sort)
+      allWords.sort((a, b) => b.count - a.count);
+      // Return the requested page
+      resolve(allWords.slice(offset, offset + limit));
+    };
+  });
+}
