@@ -1,69 +1,203 @@
 
-# Fix: Auto-Play Audio When Loading from History Play Button
 
-## The Problem
-When you click the Play button on a project in the history sidebar, it loads the project but doesn't start playing the audio. The Play button currently does the same thing as clicking anywhere on the project card - it just loads the project.
+# Smart Caption Text Management Implementation
 
-## The Solution
-Add an "auto-play" feature that starts audio playback automatically when you click the Play button (but not when you just click to load).
+## Overview
 
-## How It Will Work
-1. Click the **Play button** → Project loads AND audio starts playing immediately
-2. Click **anywhere else on the card** → Project loads but audio stays paused (current behavior)
+This plan implements intelligent sentence measurement that dynamically determines how many sentences can fit within a fixed 400px container, ensuring the display never overflows while maximizing visible content.
+
+## Current Behavior vs. New Behavior
+
+```text
+CURRENT (problematic):
+┌────────────────────────────────────┐
+│ Previous sentence that is very    │  ↑
+│ long and wraps to multiple lines  │  │ Height varies based
+│ Current sentence being spoken now │  │ on sentence lengths
+│ Next sentence coming up soon      │  │
+└────────────────────────────────────┘  ↓
+
+NEW (fixed 400px with smart measurement):
+┌────────────────────────────────────┐
+│                                   │  ↑
+│ Previous sentence (if fits)       │  │ 
+│ CURRENT SENTENCE (always shown)   │  │ Fixed 400px
+│ Next sentence (if fits)           │  │
+│                                   │  ↓
+└────────────────────────────────────┘
+```
+
+## Technical Approach
+
+### Measurement Strategy
+
+The component will use a "hidden measurement div" technique:
+
+1. **Create an off-screen measurement container** with identical styles (font size, padding, width)
+2. **Render each sentence into the hidden div** and measure its actual rendered height
+3. **Cache measured heights** for performance (sentences don't change during playback)
+4. **Dynamically calculate** which sentences fit based on measured heights
+
+```text
+Measurement Flow:
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Component mounts with sentences                          │
+│ 2. Create hidden div (visibility:hidden, position:absolute) │
+│ 3. For each sentence:                                       │
+│    - Render to hidden div                                   │
+│    - Read offsetHeight                                      │
+│    - Store in heightMap: { sentenceIndex → height }         │
+│ 4. Calculate visible sentences based on 400px budget        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Visibility Calculation Algorithm
+
+```text
+Available height: 400px - padding (p-8 = 32px × 2 = 64px) = 336px usable
+
+Priority order:
+1. CURRENT sentence (always shown, regardless of height)
+2. PREVIOUS sentence (if remaining space allows)
+3. NEXT sentence (if remaining space allows)
+4. Additional context sentences (if still room)
+
+Example calculation:
+- Total budget: 336px
+- Current sentence height: 80px → remaining: 256px
+- Previous sentence height: 70px → remaining: 186px → SHOW
+- Next sentence height: 90px → remaining: 96px → SHOW
+- Sentence before previous: 85px → not enough space → HIDE
+```
+
+### Responsive Width Handling
+
+Sentence heights change based on container width (text wrapping). The implementation will:
+
+1. Use `ResizeObserver` on the container
+2. Re-measure heights when width changes
+3. Recalculate visible sentences
 
 ---
 
-## Technical Changes
+## Implementation Details
 
-### 1. Update AudioPlayer Component
-**File**: `src/components/AudioPlayer.tsx`
+### File: `src/components/CaptionDisplay.tsx`
 
-Add an optional `autoPlay` prop that triggers playback when set to true:
-- New prop: `autoPlay?: boolean`
-- Add a `useEffect` that watches for `autoPlay` and the audio source changes
-- When both conditions are met, call `audio.play()` automatically
+**Changes:**
 
-### 2. Update Index Page
-**File**: `src/pages/Index.tsx`
+1. **Add new hooks and refs:**
+   - `containerRef` - Reference to the main container for width observation
+   - `measureRef` - Reference to hidden measurement div
+   - `heightMapRef` - Cached sentence heights
 
-Track whether the loaded project should auto-play:
-- New state: `shouldAutoPlay` (boolean)
-- Pass `autoPlay={shouldAutoPlay}` to `AudioPlayer`
-- Reset `shouldAutoPlay` to false after playback starts
-- Update `onLoadProject` callback to accept an optional `autoPlay` parameter
+2. **Add measurement effect:**
+   - Creates hidden div with matching styles
+   - Measures each sentence's rendered height
+   - Stores results in a Map
 
-### 3. Update useProject Hook
-**File**: `src/hooks/useProject.ts`
+3. **Replace fixed window logic:**
+   - Current: `slice(startIdx, startIdx + 3)` (always 3 sentences)
+   - New: Calculate based on measured heights and available space
 
-Modify `loadProject` to accept and return an auto-play flag:
-- Add optional `autoPlay` parameter to `loadProject` function
-- Return this flag so the Index page knows whether to trigger auto-play
+4. **Add ResizeObserver:**
+   - Watch container width changes
+   - Trigger re-measurement when width changes
 
-### 4. Update HistorySidebar Component
-**File**: `src/components/HistorySidebar.tsx`
+5. **Update container styles:**
+   - Change `min-h-[300px]` to `h-[400px]`
+   - Keep `overflow-hidden`
+   - Add flex layout for vertical centering (per existing memory)
 
-Differentiate between "load" and "load & play" actions:
-- Modify `handleLoad` to accept an optional `shouldPlay` parameter
-- When Play button is clicked, pass `shouldPlay: true`
-- When card is clicked, pass `shouldPlay: false` (or omit)
+### New Component Structure
 
-### 5. Update HistorySidebar Props
-**File**: `src/components/HistorySidebar.tsx`
+```text
+<div ref={containerRef} className="h-[400px] overflow-hidden ...">
+  {/* Hidden measurement div */}
+  <div ref={measureRef} className="invisible absolute ..." aria-hidden>
+    {/* Sentences rendered here for measurement */}
+  </div>
+  
+  {/* Visible content area */}
+  <div className="flex flex-col justify-center h-full">
+    {/* Gradient overlays */}
+    {/* Dynamically calculated visible sentences */}
+  </div>
+</div>
+```
 
-Update the `onLoadProject` callback type to include an auto-play flag:
-- Change from `onLoadProject: (loaded: LoadedProject) => void`
-- Change to `onLoadProject: (loaded: LoadedProject, autoPlay?: boolean) => void`
+### State & Logic Flow
+
+```text
+sentences + currentSentenceIndex
+        ↓
+┌───────────────────┐
+│  measureHeights() │ ← Triggered on mount + resize
+└─────────┬─────────┘
+          ↓
+    heightMap (cached)
+          ↓
+┌─────────────────────────────┐
+│  calculateVisibleSentences() │
+│  - Start with current        │
+│  - Add previous if fits      │
+│  - Add next if fits          │
+│  - Continue until budget = 0 │
+└─────────────────────────────┘
+          ↓
+  visibleSentences array
+          ↓
+      Render only those
+```
+
+---
+
+## Visual Centering Logic
+
+Per existing project memory, the current sentence should be vertically centered (except for the first sentence which stays top-aligned). The implementation will:
+
+1. Calculate the vertical position to center the current sentence
+2. Use flexbox `justify-center` for the sentence container
+3. Apply conditional alignment for the first sentence
+
+---
+
+## Technical Notes
+
+### Performance Considerations
+
+- **Measurement caching**: Heights are only re-measured when sentences change or container width changes
+- **Memoization**: `visibleSentences` calculation is wrapped in `useMemo`
+- **No layout thrashing**: Hidden div uses `visibility: hidden` (not `display: none`) to allow measurement without reflow
+
+### Edge Cases Handled
+
+1. **Single sentence longer than container**: Still shown, content clips gracefully with gradient overlay
+2. **Very short sentences**: More sentences become visible automatically
+3. **Responsive breakpoints**: Re-measurement handles font size changes (`text-2xl md:text-3xl`)
+4. **First/last sentence**: Proper boundary handling without array overflow
+
+### Gap Spacing
+
+The current `space-y-8` (32px gap) must be accounted for in height calculations:
+- Each additional sentence adds its height + 32px gap
+- Budget calculation: `remaining - sentenceHeight - 32`
 
 ---
 
 ## File Changes Summary
 
-| File | Change |
-|------|--------|
-| `src/components/AudioPlayer.tsx` | Add `autoPlay` prop with effect to trigger playback |
-| `src/pages/Index.tsx` | Add `shouldAutoPlay` state, pass to AudioPlayer |
-| `src/components/HistorySidebar.tsx` | Pass `autoPlay` flag when Play button clicked |
+| File | Action | Description |
+|------|--------|-------------|
+| `src/components/CaptionDisplay.tsx` | Modify | Add measurement system, resize observer, dynamic visibility calculation, fixed 400px height |
 
-## User Experience After Fix
-- Click project card → Project loads, ready to play manually
-- Click Play button → Project loads AND starts playing immediately
+---
+
+## Expected Behavior After Implementation
+
+1. **Fixed height**: Container stays exactly 400px regardless of content
+2. **Smart fitting**: Shows maximum sentences that fit without overflow
+3. **Current sentence priority**: Always visible, centered (except first)
+4. **Responsive**: Adjusts automatically when window resizes
+5. **Smooth experience**: No jarring height changes during playback
+
