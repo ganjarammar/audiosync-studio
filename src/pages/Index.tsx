@@ -5,6 +5,7 @@ import { AudioPlayer } from "@/components/AudioPlayer";
 import { CaptionDisplay } from "@/components/CaptionDisplay";
 import { ColorPicker } from "@/components/ColorPicker";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { HistorySidebar } from "@/components/HistorySidebar";
 import { useProject } from "@/hooks/useProject";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,10 +27,12 @@ const Index = () => {
     handleAudioUpload,
     handleScriptUpload,
     processFiles,
+    loadProject,
   } = useProject();
 
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // Initialize theme on mount
   useEffect(() => {
@@ -65,6 +68,11 @@ const Index = () => {
           </div>
           
           <div className="flex items-center gap-1">
+            <HistorySidebar
+              open={historyOpen}
+              onOpenChange={setHistoryOpen}
+              onLoadProject={loadProject}
+            />
             <ColorPicker />
             <ThemeToggle />
             <TooltipProvider>

@@ -153,3 +153,14 @@ export async function deleteProject(id: string): Promise<void> {
     request.onsuccess = () => resolve();
   });
 }
+
+export async function getProject(id: string): Promise<Project | undefined> {
+  const database = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(["projects"], "readonly");
+    const store = transaction.objectStore("projects");
+    const request = store.get(id);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+  });
+}

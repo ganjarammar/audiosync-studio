@@ -1,7 +1,8 @@
-import { useState, useCallback, useEffect } from "react";
-import { saveAudio, saveScript, getAudio, getScript } from "@/lib/db";
+import { useState, useCallback } from "react";
+import { saveAudio, saveScript, saveProject as saveProjectToDB } from "@/lib/db";
 import { parseScript } from "@/lib/captionParser";
-import { Sentence, AudioFile, Script } from "@/types/caption";
+import { Sentence, AudioFile, Script, Project } from "@/types/caption";
+import { LoadedProject } from "./useHistory";
 
 export function useProject() {
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -13,13 +14,7 @@ export function useProject() {
   const [scriptId, setScriptId] = useState<string | null>(null);
   const [isProcessed, setIsProcessed] = useState(false);
   const [pendingScriptContent, setPendingScriptContent] = useState<string | null>(null);
-
-  // Clear old localStorage data on mount to start fresh
-  useEffect(() => {
-    // Clear any stale data - user needs to re-upload files each session
-    localStorage.removeItem("currentAudioId");
-    localStorage.removeItem("currentScriptId");
-  }, []);
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
 
   const handleAudioUpload = useCallback(async (file: File) => {
     setIsLoading(true);
@@ -33,12 +28,12 @@ export function useProject() {
       };
 
       await saveAudio(audioData);
-      localStorage.setItem("currentAudioId", id);
 
       const url = URL.createObjectURL(file);
       setAudioUrl(url);
       setAudioFile(file);
       setAudioId(id);
+      setIsProcessed(false);
     } finally {
       setIsLoading(false);
     }
@@ -57,8 +52,8 @@ export function useProject() {
   }, []);
 
   const processFiles = useCallback(async () => {
-    if (!pendingScriptContent || !audioFile) return;
-    
+    if (!pendingScriptContent || !audioFile || !audioId) return;
+
     setIsLoading(true);
     try {
       const parsedSentences = parseScript(pendingScriptContent);
@@ -72,15 +67,49 @@ export function useProject() {
       };
 
       await saveScript(scriptData);
-      localStorage.setItem("currentScriptId", id);
+
+      // Create and save project
+      const projectId = crypto.randomUUID();
+      const projectName = audioFile.name.replace(/\.[^/.]+$/, ""); // Remove extension
+      const project: Project = {
+        id: projectId,
+        name: projectName,
+        audioId: audioId,
+        scriptId: id,
+        createdAt: Date.now(),
+        lastPlayedAt: Date.now(),
+      };
+
+      await saveProjectToDB(project);
 
       setSentences(parsedSentences);
       setScriptId(id);
+      setCurrentProjectId(projectId);
       setIsProcessed(true);
     } finally {
       setIsLoading(false);
     }
-  }, [pendingScriptContent, audioFile, scriptFile?.name]);
+  }, [pendingScriptContent, audioFile, audioId, scriptFile?.name]);
+
+  const loadProject = useCallback(async (loaded: LoadedProject) => {
+    setIsLoading(true);
+    try {
+      // Create object URL from blob
+      const url = URL.createObjectURL(loaded.audio.blob);
+      
+      setAudioUrl(url);
+      setAudioFile(null); // No File object when loading from history
+      setAudioId(loaded.audio.id);
+      setSentences(loaded.script.sentences);
+      setScriptId(loaded.script.id);
+      setScriptFile(null);
+      setPendingScriptContent(null);
+      setCurrentProjectId(loaded.project.id);
+      setIsProcessed(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const canProcess = audioFile !== null && scriptFile !== null && !isProcessed;
 
@@ -92,14 +121,10 @@ export function useProject() {
     isLoading,
     isProcessed,
     canProcess,
+    currentProjectId,
     handleAudioUpload,
     handleScriptUpload,
     processFiles,
+    loadProject,
   };
-}
-
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = (seconds % 60).toFixed(3);
-  return `${mins.toString().padStart(2, "0")}:${secs.padStart(6, "0")}`;
 }
