@@ -1,5 +1,5 @@
 import { Moon, Sun } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -7,8 +7,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { getModifierKey } from "@/hooks/useKeyboardShortcuts";
 
-export function ThemeToggle() {
+interface ThemeToggleProps {
+  onToggle?: () => void;
+}
+
+export function ThemeToggle({ onToggle }: ThemeToggleProps) {
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("theme");
@@ -17,6 +22,23 @@ export function ThemeToggle() {
     }
     return true;
   });
+
+  const toggle = useCallback(() => {
+    setIsDark((prev) => !prev);
+  }, []);
+
+  // Expose toggle via callback
+  useEffect(() => {
+    if (onToggle) {
+      // Store the toggle function reference for external use
+      (window as any).__themeToggle = toggle;
+    }
+    return () => {
+      if ((window as any).__themeToggle === toggle) {
+        delete (window as any).__themeToggle;
+      }
+    };
+  }, [onToggle, toggle]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -36,7 +58,7 @@ export function ThemeToggle() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setIsDark(!isDark)}
+            onClick={toggle}
             className="h-8 w-8 text-muted-foreground hover:text-foreground"
           >
             {isDark ? (
@@ -47,9 +69,15 @@ export function ThemeToggle() {
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom">
-          <p className="text-xs">{isDark ? "Light mode" : "Dark mode"}</p>
+          <p className="text-xs">{isDark ? "Light mode" : "Dark mode"} ({getModifierKey()}D)</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
+}
+
+// Export a function to toggle theme externally
+export function toggleTheme() {
+  const toggle = (window as any).__themeToggle;
+  if (toggle) toggle();
 }

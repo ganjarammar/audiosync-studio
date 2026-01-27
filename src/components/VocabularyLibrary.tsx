@@ -31,13 +31,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useVocabulary, SortOption } from "@/hooks/useVocabulary";
 import { VocabularyWord } from "@/types/caption";
 import { WordDetailDialog } from "@/components/WordDetailDialog";
+import { getModifierKey } from "@/hooks/useKeyboardShortcuts";
 
 interface VocabularyLibraryProps {
   open: boolean;
@@ -116,15 +118,24 @@ export function VocabularyLibrary({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-muted-foreground hover:text-foreground"
-        >
-          <Book className="h-4 w-4" />
-        </Button>
-      </SheetTrigger>
+      <TooltipProvider>
+        <Tooltip>
+          <SheetTrigger asChild>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              >
+                <Book className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+          </SheetTrigger>
+          <TooltipContent side="bottom">
+            <p className="text-xs">Vocabulary ({getModifierKey()}B)</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <SheetContent className="w-[400px] sm:w-[540px] flex flex-col">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
