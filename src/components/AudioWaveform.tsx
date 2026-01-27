@@ -53,9 +53,12 @@ export function AudioWaveform({ audioRef, isPlaying }: AudioWaveformProps) {
     const barWidth = width / barCount;
     const gap = 2;
 
-    // Get the primary color from CSS variables
+    // Get the primary color from CSS variables and convert to proper hsla format
     const style = getComputedStyle(document.documentElement);
     const primaryHsl = style.getPropertyValue("--primary").trim();
+    // CSS variable is "190 95% 45%", need to convert to "190, 95%, 45%"
+    const hslParts = primaryHsl.split(" ");
+    const formattedHsl = hslParts.join(", ");
 
     for (let i = 0; i < barCount; i++) {
       const barHeight = (dataArray[i] / 255) * height * 0.8;
@@ -64,9 +67,9 @@ export function AudioWaveform({ audioRef, isPlaying }: AudioWaveformProps) {
 
       // Create gradient for each bar
       const gradient = ctx.createLinearGradient(0, height, 0, y);
-      gradient.addColorStop(0, `hsla(${primaryHsl}, 0.1)`);
-      gradient.addColorStop(0.5, `hsla(${primaryHsl}, 0.3)`);
-      gradient.addColorStop(1, `hsla(${primaryHsl}, 0.5)`);
+      gradient.addColorStop(0, `hsla(${formattedHsl}, 0.1)`);
+      gradient.addColorStop(0.5, `hsla(${formattedHsl}, 0.3)`);
+      gradient.addColorStop(1, `hsla(${formattedHsl}, 0.5)`);
 
       ctx.fillStyle = gradient;
       ctx.beginPath();
@@ -93,6 +96,8 @@ export function AudioWaveform({ audioRef, isPlaying }: AudioWaveformProps) {
 
     const style = getComputedStyle(document.documentElement);
     const primaryHsl = style.getPropertyValue("--primary").trim();
+    const hslParts = primaryHsl.split(" ");
+    const formattedHsl = hslParts.join(", ");
 
     for (let i = 0; i < barCount; i++) {
       // Create a subtle wave pattern for idle state
@@ -100,7 +105,7 @@ export function AudioWaveform({ audioRef, isPlaying }: AudioWaveformProps) {
       const x = i * barWidth + gap / 2;
       const y = height - barHeight;
 
-      ctx.fillStyle = `hsla(${primaryHsl}, 0.15)`;
+      ctx.fillStyle = `hsla(${formattedHsl}, 0.15)`;
       ctx.beginPath();
       ctx.roundRect(x, y, barWidth - gap, barHeight, 2);
       ctx.fill();
