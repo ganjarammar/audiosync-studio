@@ -20,14 +20,17 @@ export interface QuickLoadedProject {
 
 interface QuickActionsBarProps {
   onQuickLoad: (loaded: QuickLoadedProject) => void;
-  refreshTrigger?: string | null; // Triggers refresh when changed (e.g., currentProjectId)
+  currentProjectId?: string | null; // Currently loaded project ID
 }
 
-export function QuickActionsBar({ onQuickLoad, refreshTrigger }: QuickActionsBarProps) {
+export function QuickActionsBar({ onQuickLoad, currentProjectId }: QuickActionsBarProps) {
   const [lastPlayed, setLastPlayed] = useState<Project | null>(null);
   const [recentlyAdded, setRecentlyAdded] = useState<Project | null>(null);
   const [hasProjects, setHasProjects] = useState(false);
   const [isLoading, setIsLoading] = useState<string | null>(null);
+
+  // Check if the current project is already the last played one
+  const isCurrentProjectLoaded = currentProjectId && lastPlayed && currentProjectId === lastPlayed.id;
 
   // Fetch last played and recently added projects for hint display
   useEffect(() => {
@@ -41,7 +44,7 @@ export function QuickActionsBar({ onQuickLoad, refreshTrigger }: QuickActionsBar
       setHasProjects(!!lastPlayedProject || recentProjects.length > 0);
     };
     fetchProjects();
-  }, [refreshTrigger]); // Re-fetch when refreshTrigger changes
+  }, [currentProjectId]); // Re-fetch when currentProjectId changes
 
   const loadProjectWithResources = useCallback(
     async (project: Project, seekToSaved = false): Promise<boolean> => {
@@ -113,11 +116,11 @@ export function QuickActionsBar({ onQuickLoad, refreshTrigger }: QuickActionsBar
 
   return (
     <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 w-full">
-      {/* Continue Listening - Primary action */}
+      {/* Continue Listening / Current Audio - Primary action */}
       <Button
         onClick={handleContinueListening}
-        disabled={!lastPlayed || isLoading !== null}
-        className="flex-1 sm:flex-initial gap-3 py-6 px-6 gradient-primary text-primary-foreground rounded-xl hover:scale-[1.02] transition-all duration-200"
+        disabled={!lastPlayed || isLoading !== null || isCurrentProjectLoaded}
+        className="flex-1 sm:flex-initial gap-3 py-6 px-6 gradient-primary text-primary-foreground rounded-xl hover:scale-[1.02] transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
       >
         {isLoading === "continue" ? (
           <Loader2 className="h-5 w-5 animate-spin" />
@@ -125,7 +128,9 @@ export function QuickActionsBar({ onQuickLoad, refreshTrigger }: QuickActionsBar
           <PlayCircle className="h-5 w-5" />
         )}
         <div className="flex flex-col items-start">
-          <span className="font-medium">Continue Listening</span>
+          <span className="font-medium">
+            {isCurrentProjectLoaded ? "Current Audio" : "Continue Listening"}
+          </span>
           {lastPlayed && (
             <span className="text-xs opacity-80 truncate max-w-[140px]">
               {lastPlayed.name}
