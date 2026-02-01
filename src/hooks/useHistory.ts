@@ -8,6 +8,7 @@ import {
   deleteAudio,
   deleteScript,
   saveProject,
+  toggleProjectFavorite,
 } from "@/lib/db";
 import { Project, AudioFile, Script } from "@/types/caption";
 
@@ -87,11 +88,18 @@ export function useHistory() {
     }
   }, [refreshProjects]);
 
+  const toggleFavorite = useCallback(async (projectId: string) => {
+    const newStatus = await toggleProjectFavorite(projectId);
+    await refreshProjects();
+    return newStatus;
+  }, [refreshProjects]);
+
   return {
     projects,
     isLoading,
     refreshProjects,
     loadProject,
     removeProject,
+    toggleFavorite,
   };
 }

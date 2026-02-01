@@ -117,6 +117,11 @@ export function useProject() {
       setPendingScriptContent(null);
       setCurrentProjectId(loaded.project.id);
       setIsProcessed(true);
+      
+      return {
+        lastPosition: loaded.project.lastPosition,
+        lastSentenceIndex: loaded.project.lastSentenceIndex,
+      };
     } finally {
       setIsLoading(false);
     }

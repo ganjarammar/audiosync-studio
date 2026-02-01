@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { History, Play, Trash2, Clock, Music, ArrowUpAZ, ArrowDownAZ, ArrowUp, ArrowDown } from "lucide-react";
+import { History, Play, Trash2, Clock, Music, ArrowUpAZ, ArrowDownAZ, ArrowUp, ArrowDown, Star } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
   Sheet,
@@ -30,16 +30,21 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useHistory, LoadedProject } from "@/hooks/useHistory.ts";
 import { Project } from "@/types/caption";
 import { getModifierKey } from "@/hooks/useKeyboardShortcuts";
+import { cn } from "@/lib/utils";
 
-type SortOption = "name-desc" | "name-asc" | "date-desc" | "date-asc";
+type SortOption = "name-desc" | "name-asc" | "date-desc" | "date-asc" | "favorites";
+type FilterOption = "all" | "favorites";
 
 const SORT_STORAGE_KEY = "history-sort";
+const FILTER_STORAGE_KEY = "history-filter";
 
 interface HistorySidebarProps {
   open: boolean;
@@ -48,11 +53,15 @@ interface HistorySidebarProps {
 }
 
 export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySidebarProps) {
-  const { projects, isLoading, refreshProjects, loadProject, removeProject } = useHistory();
+  const { projects, isLoading, refreshProjects, loadProject, removeProject, toggleFavorite } = useHistory();
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>(() => {
     const stored = localStorage.getItem(SORT_STORAGE_KEY);
     return (stored as SortOption) || "name-desc";
+  });
+  const [filterBy, setFilterBy] = useState<FilterOption>(() => {
+    const stored = localStorage.getItem(FILTER_STORAGE_KEY);
+    return (stored as FilterOption) || "all";
   });
 
   useEffect(() => {
@@ -66,8 +75,33 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
     localStorage.setItem(SORT_STORAGE_KEY, option);
   };
 
-  const sortedProjects = useMemo(() => {
-    return [...projects].sort((a, b) => {
+  const handleFilterChange = (option: FilterOption) => {
+    setFilterBy(option);
+    localStorage.setItem(FILTER_STORAGE_KEY, option);
+  };
+
+  const handleToggleFavorite = async (e: React.MouseEvent, projectId: string) => {
+    e.stopPropagation();
+    await toggleFavorite(projectId);
+  };
+
+  const filteredAndSortedProjects = useMemo(() => {
+    let filtered = [...projects];
+    
+    // Apply filter
+    if (filterBy === "favorites") {
+      filtered = filtered.filter((p) => p.isFavorite);
+    }
+    
+    // Apply sort
+    return filtered.sort((a, b) => {
+      // Favorites first option
+      if (sortBy === "favorites") {
+        if (a.isFavorite && !b.isFavorite) return -1;
+        if (!a.isFavorite && b.isFavorite) return 1;
+        return (b.lastPlayedAt || b.createdAt) - (a.lastPlayedAt || a.createdAt);
+      }
+      
       switch (sortBy) {
         case "name-desc":
           return b.name.localeCompare(a.name);
@@ -81,7 +115,9 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
           return 0;
       }
     });
-  }, [projects, sortBy]);
+  }, [projects, sortBy, filterBy]);
+
+  const favoriteCount = useMemo(() => projects.filter((p) => p.isFavorite).length, [projects]);
 
   const handleLoad = async (project: Project, autoPlay = false) => {
     const loaded = await loadProject(project.id);
@@ -133,9 +169,15 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
                   {sortBy === "name-asc" && <ArrowUpAZ className="h-4 w-4" />}
                   {sortBy === "date-desc" && <ArrowDown className="h-4 w-4" />}
                   {sortBy === "date-asc" && <ArrowUp className="h-4 w-4" />}
+                  {sortBy === "favorites" && <Star className="h-4 w-4" />}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleSortChange("favorites")} className={sortBy === "favorites" ? "bg-accent" : ""}>
+                  <Star className="h-4 w-4 mr-2" />
+                  Favorites first
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => handleSortChange("name-desc")} className={sortBy === "name-desc" ? "bg-accent" : ""}>
                   <ArrowDownAZ className="h-4 w-4 mr-2" />
                   Name (Z → A)
@@ -160,7 +202,20 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
           </SheetDescription>
         </SheetHeader>
 
-        <ScrollArea className="h-[calc(100vh-140px)] mt-6 -mx-2 px-2">
+        {/* Filter Tabs */}
+        <Tabs value={filterBy} onValueChange={(v) => handleFilterChange(v as FilterOption)} className="mt-4">
+          <TabsList className="w-full">
+            <TabsTrigger value="all" className="flex-1">
+              All ({projects.length})
+            </TabsTrigger>
+            <TabsTrigger value="favorites" className="flex-1">
+              <Star className="h-3.5 w-3.5 mr-1.5" />
+              Favorites ({favoriteCount})
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <ScrollArea className="h-[calc(100vh-200px)] mt-4 -mx-2 px-2">
           {isLoading && projects.length === 0 ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
@@ -177,7 +232,7 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
             </div>
           ) : (
             <div className="space-y-2">
-              {sortedProjects.map((project) => (
+              {filteredAndSortedProjects.map((project) => (
                 <div
                   key={project.id}
                   onClick={() => handleLoad(project)}
@@ -188,7 +243,12 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
                       <Music className="h-4 w-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{project.name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-medium text-sm truncate">{project.name}</p>
+                        {project.isFavorite && (
+                          <Star className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />
+                        )}
+                      </div>
                       <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
                         <span>
@@ -202,6 +262,19 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
 
                   {/* Action buttons */}
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "h-7 w-7",
+                        project.isFavorite 
+                          ? "text-amber-500 hover:bg-amber-500/20" 
+                          : "text-muted-foreground hover:bg-muted"
+                      )}
+                      onClick={(e) => handleToggleFavorite(e, project.id)}
+                    >
+                      <Star className={cn("h-3.5 w-3.5", project.isFavorite && "fill-current")} />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"

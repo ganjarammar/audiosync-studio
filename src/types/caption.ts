@@ -32,6 +32,9 @@ export interface Project {
   scriptId: string;
   createdAt: number;
   lastPlayedAt?: number;
+  isFavorite?: boolean;
+  lastPosition?: number;
+  lastSentenceIndex?: number;
 }
 
 export interface WordSource {
