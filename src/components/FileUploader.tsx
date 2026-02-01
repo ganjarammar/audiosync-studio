@@ -90,7 +90,7 @@ export function FileUploader({
           "hover:bg-accent/20 hover:border-primary/30",
           audioDragActive && "border-primary bg-accent/30",
           audioFile && "border-primary/50 bg-accent/20",
-          showHint && !audioFile && !scriptFile && "animate-shimmer"
+          showHint && !audioFile && !scriptFile && "animate-border-light"
         )}
         onDragOver={(e) => {
           e.preventDefault();
@@ -136,7 +136,7 @@ export function FileUploader({
           "hover:bg-accent/20 hover:border-primary/30",
           scriptDragActive && "border-primary bg-accent/30",
           scriptFile && "border-primary/50 bg-accent/20",
-          showHint && !audioFile && !scriptFile && "animate-shimmer"
+          showHint && !audioFile && !scriptFile && "animate-border-light"
         )}
         onDragOver={(e) => {
           e.preventDefault();
