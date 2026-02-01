@@ -1,64 +1,138 @@
 
 
-# PodLingo Rebranding Plan
+# Quick Actions Menu & Auto-Checkpoint Implementation Plan
 
 ## Overview
-This plan covers updating all branding references from "PodSync" and generic "Lovable App" placeholders to **PodLingo** across the codebase.
-
-## Files to Update
-
-### 1. `index.html` - Web App Metadata
-Update the HTML document with proper PodLingo branding:
-
-| Element | Current Value | New Value |
-|---------|--------------|-----------|
-| `<title>` | Lovable App | PodLingo |
-| `<meta name="description">` | Lovable Generated Project | PodLingo - Learn languages through podcast captions |
-| `<meta name="author">` | Lovable | PodLingo |
-| `<meta property="og:title">` | Lovable App | PodLingo |
-| `<meta property="og:description">` | Lovable Generated Project | Learn languages through podcast captions with synchronized audio playback |
-| Remove TODO comments | Yes | Clean up placeholder comments |
+This plan adds three main features:
+1. **Quick Actions Menu** in the header with: Continue Listening, Recently Added, Play Randomly
+2. **Favorites System** integrated into the History sidebar
+3. **Auto-Checkpoint** that saves/restores playback position at the sentence level for all projects
 
 ---
 
-### 2. `src/pages/Index.tsx` - App Header
-Update the visible app name in the header:
+## Part 1: Database Schema Updates
 
-- **Line 96**: Change `PodSync` to `PodLingo`
+### Extend Project Type
+Add new fields to track playback position and favorites:
+
+```typescript
+// src/types/caption.ts
+export interface Project {
+  id: string;
+  name: string;
+  audioId: string;
+  scriptId: string;
+  createdAt: number;
+  lastPlayedAt?: number;
+  // NEW FIELDS:
+  isFavorite?: boolean;           // For favorites feature
+  lastPosition?: number;          // Playback position in seconds
+  lastSentenceIndex?: number;     // Current sentence index for checkpoint
+}
+```
+
+### Add DB Functions
+New functions in `src/lib/db.ts`:
+- `updateProjectPlaybackPosition(projectId, position, sentenceIndex)` - Save checkpoint
+- `getRecentlyAddedProjects(limit)` - Get newest projects by `createdAt`
+- `toggleProjectFavorite(projectId)` - Toggle favorite status
 
 ---
 
-### 3. `package.json` - NPM Package Name
-Update the package name for consistency:
+## Part 2: Quick Actions Menu Component
 
-- **Line 2**: Change `"name": "vite_react_shadcn_ts"` to `"name": "podlingo"`
+### New Component: `src/components/QuickActionsMenu.tsx`
+
+A dropdown menu in the header with three actions:
+
+| Action | Icon | Behavior |
+|--------|------|----------|
+| Continue Listening | `PlayCircle` | Load last played project and seek to saved position |
+| Recently Added | `Sparkles` | Load the most recently added project |
+| Play Randomly | `Shuffle` | Pick a random project from history |
+
+The menu will:
+- Be disabled/hidden when no projects exist
+- Show the project name as a hint for "Continue Listening"
+- Trigger auto-play after loading
 
 ---
 
-### 4. `README.md` - Project Documentation
-Replace the generic Lovable README with PodLingo-specific documentation covering:
+## Part 3: Auto-Checkpoint System
 
-- Project description and features
-- Desktop app build instructions (Tauri)
-- Development setup
-- Key features (caption sync, vocabulary tracking, auto-updater)
+### Save Position on Playback
+In `src/pages/Index.tsx`:
+- Track the current sentence index from `CaptionDisplay`
+- Debounce position saves (every 2-3 seconds or on sentence change)
+- Save `{ position, sentenceIndex }` to the current project
+
+### Restore Position on Load
+In `src/hooks/useProject.ts`:
+- When loading a project, expose `lastPosition` and `lastSentenceIndex`
+- Pass the saved position to `AudioPlayer` for auto-seek
+
+### Position Flow
+```text
+User plays audio
+    ↓
+currentTime updates → detect sentence changes
+    ↓
+Save position to IndexedDB (debounced)
+    ↓
+User closes app / switches project
+    ↓
+Reopens or clicks "Continue Listening"
+    ↓
+Load project with saved position → seek to that time
+```
 
 ---
 
-## Summary of Changes
+## Part 4: Favorites in History Sidebar
 
-| File | Change Type | Description |
-|------|-------------|-------------|
-| `index.html` | Update | HTML title, meta tags, OG tags |
-| `src/pages/Index.tsx` | Update | Header brand name (PodSync to PodLingo) |
-| `package.json` | Update | Package name |
-| `README.md` | Rewrite | Project-specific documentation |
+### UI Changes to `src/components/HistorySidebar.tsx`
+
+1. **Add Favorites Tab/Filter**
+   - Toggle button or tabs: "All" | "Favorites"
+   - Filter projects by `isFavorite` flag
+
+2. **Star Button on Each Project Card**
+   - Appears alongside Play/Delete buttons on hover
+   - Filled star for favorites, outline for non-favorites
+   - Click to toggle favorite status
+
+3. **Sorting Enhancement**
+   - Add sort option: "Favorites first"
+
+---
+
+## Part 5: Header Integration
+
+### Update `src/pages/Index.tsx`
+Add the `QuickActionsMenu` component to the header toolbar, positioned near History/Vocabulary buttons.
+
+---
+
+## Files to Create/Modify
+
+| File | Action | Description |
+|------|--------|-------------|
+| `src/types/caption.ts` | Modify | Add `isFavorite`, `lastPosition`, `lastSentenceIndex` to Project |
+| `src/lib/db.ts` | Modify | Add position/favorite update functions |
+| `src/components/QuickActionsMenu.tsx` | Create | New quick actions dropdown component |
+| `src/hooks/useProject.ts` | Modify | Handle loading saved position, add position save hook |
+| `src/hooks/useHistory.ts` | Modify | Add random project, recently added helpers |
+| `src/pages/Index.tsx` | Modify | Integrate QuickActionsMenu, add position tracking |
+| `src/components/HistorySidebar.tsx` | Modify | Add favorites toggle, star button, favorites filter |
+| `src/components/AudioPlayer.tsx` | Modify | Accept initial position for seeking on load |
 
 ---
 
 ## Technical Notes
 
-- The `tauri.conf.json` already uses "PodLingo" for `productName`, window `title`, and `identifier` - no changes needed there
-- The GitHub workflow already uses "PodLingo" in the release name - no changes needed
-- The updater endpoint URL references "audiosync-studio" which is your GitHub repo name - this is fine to keep as-is since it's just the repo URL
+- **Debouncing**: Position saves will be debounced to avoid excessive IndexedDB writes during playback
+- **Sentence Detection**: Will track sentence index changes by comparing `currentTime` against sentence boundaries
+- **IndexedDB Compatibility**: No schema version bump needed since we're adding optional fields to existing records
+- **Empty State Handling**: Quick Actions menu will gracefully handle no projects (disabled state or hidden)
+- **Keyboard Shortcuts**: Can optionally add shortcuts like `Cmd+Shift+P` for Continue Listening
 
