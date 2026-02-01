@@ -168,6 +168,9 @@ const Index = () => {
 
       <main className="container mx-auto flex min-h-screen flex-col items-center justify-center px-6 pt-20 pb-8">
         <div className="w-full max-w-3xl space-y-8">
+          {/* Quick Actions Bar - Above Main Content */}
+          <QuickActionsBar onQuickLoad={handleQuickLoad} />
+
           {/* Caption Display - Hero Element */}
           {isReady ? (
             <div className="space-y-6">
@@ -192,9 +195,6 @@ const Index = () => {
               </p>
             </div>
           )}
-
-          {/* Quick Actions Bar */}
-          <QuickActionsBar onQuickLoad={handleQuickLoad} />
 
           {/* Process Button */}
           {canProcess && (
