@@ -95,7 +95,7 @@ export function FileUploader({
         ) : audioFile ? (
           <Check className="h-4 w-4 text-primary" />
         ) : (
-          <Music className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+          <Music className="h-4 w-4 text-primary/70 group-hover:text-primary transition-colors" />
         )}
         <span className={cn(
           "text-sm transition-colors",
@@ -140,7 +140,7 @@ export function FileUploader({
         ) : scriptFile ? (
           <Check className="h-4 w-4 text-primary" />
         ) : (
-          <FileText className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+          <FileText className="h-4 w-4 text-primary/70 group-hover:text-primary transition-colors" />
         )}
         <span className={cn(
           "text-sm transition-colors",
