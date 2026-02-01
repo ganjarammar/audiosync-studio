@@ -169,7 +169,7 @@ const Index = () => {
       <main className="container mx-auto flex min-h-screen flex-col items-center justify-center px-6 pt-20 pb-8">
         <div className="w-full max-w-3xl space-y-8">
           {/* Quick Actions Bar - Above Main Content */}
-          <QuickActionsBar onQuickLoad={handleQuickLoad} />
+          <QuickActionsBar onQuickLoad={handleQuickLoad} refreshTrigger={currentProjectId} />
 
           {/* Caption Display - Hero Element */}
           {isReady ? (

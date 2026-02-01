@@ -20,9 +20,10 @@ export interface QuickLoadedProject {
 
 interface QuickActionsBarProps {
   onQuickLoad: (loaded: QuickLoadedProject) => void;
+  refreshTrigger?: string | null; // Triggers refresh when changed (e.g., currentProjectId)
 }
 
-export function QuickActionsBar({ onQuickLoad }: QuickActionsBarProps) {
+export function QuickActionsBar({ onQuickLoad, refreshTrigger }: QuickActionsBarProps) {
   const [lastPlayed, setLastPlayed] = useState<Project | null>(null);
   const [recentlyAdded, setRecentlyAdded] = useState<Project | null>(null);
   const [hasProjects, setHasProjects] = useState(false);
@@ -40,7 +41,7 @@ export function QuickActionsBar({ onQuickLoad }: QuickActionsBarProps) {
       setHasProjects(!!lastPlayedProject || recentProjects.length > 0);
     };
     fetchProjects();
-  }, []);
+  }, [refreshTrigger]); // Re-fetch when refreshTrigger changes
 
   const loadProjectWithResources = useCallback(
     async (project: Project, seekToSaved = false): Promise<boolean> => {
