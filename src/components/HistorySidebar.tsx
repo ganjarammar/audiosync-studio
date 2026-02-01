@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { History, Play, Trash2, Clock, Music } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
+import { History, Play, Trash2, Clock, Music, ArrowUpAZ, ArrowDownAZ, ArrowUp, ArrowDown } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
   Sheet,
@@ -25,11 +25,21 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useHistory, LoadedProject } from "@/hooks/useHistory.ts";
 import { Project } from "@/types/caption";
 import { getModifierKey } from "@/hooks/useKeyboardShortcuts";
+
+type SortOption = "name-desc" | "name-asc" | "date-desc" | "date-asc";
+
+const SORT_STORAGE_KEY = "history-sort";
 
 interface HistorySidebarProps {
   open: boolean;
@@ -40,12 +50,38 @@ interface HistorySidebarProps {
 export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySidebarProps) {
   const { projects, isLoading, refreshProjects, loadProject, removeProject } = useHistory();
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>(() => {
+    const stored = localStorage.getItem(SORT_STORAGE_KEY);
+    return (stored as SortOption) || "name-desc";
+  });
 
   useEffect(() => {
     if (open) {
       refreshProjects();
     }
   }, [open, refreshProjects]);
+
+  const handleSortChange = (option: SortOption) => {
+    setSortBy(option);
+    localStorage.setItem(SORT_STORAGE_KEY, option);
+  };
+
+  const sortedProjects = useMemo(() => {
+    return [...projects].sort((a, b) => {
+      switch (sortBy) {
+        case "name-desc":
+          return b.name.localeCompare(a.name);
+        case "name-asc":
+          return a.name.localeCompare(b.name);
+        case "date-desc":
+          return (b.lastPlayedAt || b.createdAt) - (a.lastPlayedAt || a.createdAt);
+        case "date-asc":
+          return (a.lastPlayedAt || a.createdAt) - (b.lastPlayedAt || b.createdAt);
+        default:
+          return 0;
+      }
+    });
+  }, [projects, sortBy]);
 
   const handleLoad = async (project: Project, autoPlay = false) => {
     const loaded = await loadProject(project.id);
@@ -85,10 +121,40 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
       </TooltipProvider>
       <SheetContent className="glass border-border/50 w-80">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <History className="h-5 w-5 text-primary" />
-            History
-          </SheetTitle>
+          <div className="flex items-center justify-between">
+            <SheetTitle className="flex items-center gap-2">
+              <History className="h-5 w-5 text-primary" />
+              History
+            </SheetTitle>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                  {sortBy === "name-desc" && <ArrowDownAZ className="h-4 w-4" />}
+                  {sortBy === "name-asc" && <ArrowUpAZ className="h-4 w-4" />}
+                  {sortBy === "date-desc" && <ArrowDown className="h-4 w-4" />}
+                  {sortBy === "date-asc" && <ArrowUp className="h-4 w-4" />}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleSortChange("name-desc")} className={sortBy === "name-desc" ? "bg-accent" : ""}>
+                  <ArrowDownAZ className="h-4 w-4 mr-2" />
+                  Name (Z → A)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleSortChange("name-asc")} className={sortBy === "name-asc" ? "bg-accent" : ""}>
+                  <ArrowUpAZ className="h-4 w-4 mr-2" />
+                  Name (A → Z)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleSortChange("date-desc")} className={sortBy === "date-desc" ? "bg-accent" : ""}>
+                  <ArrowDown className="h-4 w-4 mr-2" />
+                  Newest first
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleSortChange("date-asc")} className={sortBy === "date-asc" ? "bg-accent" : ""}>
+                  <ArrowUp className="h-4 w-4 mr-2" />
+                  Oldest first
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           <SheetDescription>
             Your saved projects. Click to load.
           </SheetDescription>
@@ -111,7 +177,7 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
             </div>
           ) : (
             <div className="space-y-2">
-              {projects.map((project) => (
+              {sortedProjects.map((project) => (
                 <div
                   key={project.id}
                   onClick={() => handleLoad(project)}
