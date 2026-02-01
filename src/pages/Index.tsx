@@ -9,7 +9,7 @@ import { HistorySidebar } from "@/components/HistorySidebar";
 import { VocabularyLibrary } from "@/components/VocabularyLibrary";
 import { ScriptSearch } from "@/components/ScriptSearch";
 import { UpdateButton } from "@/components/UpdateButton";
-import { QuickActionsMenu, QuickLoadedProject } from "@/components/QuickActionsMenu";
+import { QuickActionsBar, QuickLoadedProject } from "@/components/QuickActionsBar";
 import { useProject } from "@/hooks/useProject";
 import { usePlaybackCheckpoint } from "@/hooks/usePlaybackCheckpoint";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
@@ -121,7 +121,6 @@ const Index = () => {
           </div>
           
           <div className="flex items-center gap-1">
-            <QuickActionsMenu onQuickLoad={handleQuickLoad} />
             <HistorySidebar
               open={historyOpen}
               onOpenChange={setHistoryOpen}
@@ -193,6 +192,9 @@ const Index = () => {
               </p>
             </div>
           )}
+
+          {/* Quick Actions Bar */}
+          <QuickActionsBar onQuickLoad={handleQuickLoad} />
 
           {/* Process Button */}
           {canProcess && (
