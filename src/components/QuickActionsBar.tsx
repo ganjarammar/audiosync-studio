@@ -139,7 +139,7 @@ export function QuickActionsBar({ onQuickLoad, refreshTrigger }: QuickActionsBar
         onClick={handleRecentlyAdded}
         disabled={isLoading !== null}
         variant="outline"
-        className="flex-1 sm:flex-initial gap-3 py-6 px-6 rounded-xl glass border-border/50 hover:scale-[1.02] transition-all duration-200"
+        className="flex-1 sm:flex-initial gap-3 py-6 px-6 rounded-xl glass border-border/50 hover:border-primary/50 hover:text-primary hover:scale-[1.02] transition-all duration-200"
       >
         {isLoading === "recent" ? (
           <Loader2 className="h-5 w-5 animate-spin" />
@@ -161,7 +161,7 @@ export function QuickActionsBar({ onQuickLoad, refreshTrigger }: QuickActionsBar
         onClick={handlePlayRandomly}
         disabled={isLoading !== null}
         variant="outline"
-        className="flex-1 sm:flex-initial gap-3 py-6 px-6 rounded-xl glass border-border/50 hover:scale-[1.02] transition-all duration-200"
+        className="flex-1 sm:flex-initial gap-3 py-6 px-6 rounded-xl glass border-border/50 hover:border-primary/50 hover:text-primary hover:scale-[1.02] transition-all duration-200"
       >
         {isLoading === "random" ? (
           <Loader2 className="h-5 w-5 animate-spin" />
