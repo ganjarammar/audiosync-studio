@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Upload, Music, FileText, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +19,21 @@ export function FileUploader({
 }: FileUploaderProps) {
   const [audioDragActive, setAudioDragActive] = useState(false);
   const [scriptDragActive, setScriptDragActive] = useState(false);
+  const [showHint, setShowHint] = useState(true);
+
+  // Auto-dismiss shimmer after 8 seconds or when files are uploaded
+  useEffect(() => {
+    if (audioFile || scriptFile) {
+      setShowHint(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setShowHint(false);
+    }, 8000);
+
+    return () => clearTimeout(timer);
+  }, [audioFile, scriptFile]);
 
   const handleAudioDrop = useCallback(
     async (e: React.DragEvent) => {
@@ -74,7 +89,8 @@ export function FileUploader({
           "glass transition-all duration-200",
           "hover:bg-accent/20 hover:border-primary/30",
           audioDragActive && "border-primary bg-accent/30",
-          audioFile && "border-primary/50 bg-accent/20"
+          audioFile && "border-primary/50 bg-accent/20",
+          showHint && !audioFile && !scriptFile && "animate-shimmer"
         )}
         onDragOver={(e) => {
           e.preventDefault();
@@ -119,7 +135,8 @@ export function FileUploader({
           "glass transition-all duration-200",
           "hover:bg-accent/20 hover:border-primary/30",
           scriptDragActive && "border-primary bg-accent/30",
-          scriptFile && "border-primary/50 bg-accent/20"
+          scriptFile && "border-primary/50 bg-accent/20",
+          showHint && !audioFile && !scriptFile && "animate-shimmer"
         )}
         onDragOver={(e) => {
           e.preventDefault();
