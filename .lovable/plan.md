@@ -1,112 +1,87 @@
 
+# Move Quick Actions to Main Content Area
 
-# Add Running Light Animation to Upload Buttons
+## Current Issue
+The Quick Actions menu is currently a small icon (lightning bolt) in the header that opens a dropdown. This makes it:
+- Hard to discover (hidden behind a dropdown)
+- Only visible when projects exist
+- Less prominent than the feature deserves
 
-## Goal
-Add an eye-catching shimmer/sweep animation to the Audio and Script upload buttons when the app first opens. This serves as a visual onboarding cue to guide new users on the first action they need to take.
+## Recommended Position: Above the Empty State / Below Caption Display
 
-## How It Will Work
-
-The animation will:
-- Play automatically when the app opens (fresh page load)
-- Run for a limited time (e.g., 3-5 loops) then stop
-- Stop immediately if the user uploads a file or interacts with the buttons
-- Use the theme's primary color for the light sweep effect
-- Not replay during the same session once dismissed
-
-## Visual Effect
-
-The "running light" will be a diagonal shimmer that sweeps across the button surface:
+The best placement is in the **main content area**, displayed as **3 horizontal action buttons**:
 
 ```text
-Before:        During animation:       After:
-+--------+     +---/----+              +--------+
-| Audio  |  →  | Au/dio |  →  (loops)  | Audio  |
-+--------+     +---/----+              +--------+
++--------------------------------------------------+
+|  Header: Logo  |  History | Vocab | Theme | etc  |
++--------------------------------------------------+
+|                                                  |
+|            [Caption Display Area]                |
+|                                                  |
+|  +------------+  +------------+  +------------+  |
+|  | Continue   |  | Recently   |  | Play       |  |
+|  | Listening  |  | Added      |  | Randomly   |  |
+|  +------------+  +------------+  +------------+  |
+|                                                  |
+|            [Audio Player Controls]               |
+|                                                  |
+|            [File Uploader Area]                  |
++--------------------------------------------------+
 ```
 
-The effect uses a semi-transparent gradient overlay that moves from left to right, creating a "light sweep" or "shimmer" effect.
+## Why This Position?
 
----
+1. **High visibility**: Users see the quick actions immediately
+2. **Natural flow**: After the main content (captions), before file management
+3. **Context-aware**: Can show different states when no projects exist vs. active playback
+4. **Mobile-friendly**: Horizontal row stacks nicely on smaller screens
 
-## Technical Approach
+## Design Approach
 
-### 1. CSS Animation (src/index.css)
+### New Component: `QuickActionsBar`
+Replace the dropdown with 3 styled buttons in a horizontal row:
 
-Add a new keyframe animation for the shimmer effect:
+| Button | Icon | Style | Description |
+|--------|------|-------|-------------|
+| Continue Listening | `PlayCircle` | Primary gradient | Shows last played name as subtitle |
+| Recently Added | `Sparkles` | Outline/Secondary | Amber accent icon |
+| Play Randomly | `Shuffle` | Outline/Secondary | Emerald accent icon |
 
-```css
-@keyframes shimmer-sweep {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
+### Visual Styling
+- Glass/frosted background consistent with app design
+- Hover effects matching the app's glow aesthetic
+- Subtle animations on interaction
+- Disabled state when no projects exist
+- Hidden when no projects at all (to avoid confusion for new users)
 
-.animate-shimmer {
-  position: relative;
-  overflow: hidden;
-}
+### Placement in Index.tsx
+Position between `CaptionDisplay`/empty state and `FileUploader`:
 
-.animate-shimmer::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    hsl(var(--primary) / 0.3) 50%,
-    transparent 100%
-  );
-  animation: shimmer-sweep 1.5s ease-in-out infinite;
-  pointer-events: none;
-}
+```text
+{/* Caption or Empty State */}
+{isReady ? <CaptionDisplay /> : <EmptyState />}
+
+{/* Quick Actions Row - NEW */}
+<QuickActionsBar onQuickLoad={handleQuickLoad} />
+
+{/* Process Button */}
+{canProcess && <Button>Generate Preview</Button>}
+
+{/* File Uploader */}
+<FileUploader />
 ```
-
-### 2. Component State (src/components/FileUploader.tsx)
-
-Add state to control when the animation shows:
-
-| State | Purpose |
-|-------|---------|
-| `showHint` | Boolean to control if shimmer animation is active |
-
-Logic:
-- Initialize `showHint = true` on mount
-- Set `showHint = false` when:
-  - User uploads either file (audio or script)
-  - After a timeout (e.g., 8-10 seconds)
-  - Or after a set number of animation cycles
-
-### 3. Apply Animation Classes
-
-Conditionally apply the `animate-shimmer` class to both upload button labels when `showHint` is true AND no files are uploaded yet:
-
-```tsx
-<label
-  className={cn(
-    "group relative cursor-pointer overflow-hidden",
-    // ... existing classes
-    showHint && !audioFile && !scriptFile && "animate-shimmer"
-  )}
->
-```
-
----
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/index.css` | Add `shimmer-sweep` keyframe and `.animate-shimmer` utility class |
-| `src/components/FileUploader.tsx` | Add `showHint` state with auto-dismiss timer, apply animation class conditionally |
+| `src/components/QuickActionsMenu.tsx` | Refactor from dropdown to horizontal button bar |
+| `src/pages/Index.tsx` | Move component from header to main content area |
 
-## Summary
+## Technical Notes
 
-This creates a subtle but noticeable visual hint that naturally draws the user's eye to the upload buttons when they first open the app, without being intrusive or annoying.
-
+- Remove the component from the header toolbar
+- The horizontal layout uses flexbox with `gap-3` or `gap-4`
+- On mobile, buttons can stack vertically or become compact
+- Keep the same loading/project fetching logic
+- Add subtle animations (scale on hover, loading spinner)

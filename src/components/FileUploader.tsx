@@ -20,10 +20,6 @@ export function FileUploader({
   const [audioDragActive, setAudioDragActive] = useState(false);
   const [scriptDragActive, setScriptDragActive] = useState(false);
 
-  // Show border animation only when no files are uploaded
-  const showBorderAnimation = !audioFile && !scriptFile;
-
-
   const handleAudioDrop = useCallback(
     async (e: React.DragEvent) => {
       e.preventDefault();
@@ -78,8 +74,7 @@ export function FileUploader({
           "glass transition-all duration-200",
           "hover:bg-accent/20 hover:border-primary/30",
           audioDragActive && "border-primary bg-accent/30",
-          audioFile && "border-primary/50 bg-accent/20",
-          showBorderAnimation && "animate-border-light"
+          audioFile && "border-primary/50 bg-accent/20"
         )}
         onDragOver={(e) => {
           e.preventDefault();
@@ -124,8 +119,7 @@ export function FileUploader({
           "glass transition-all duration-200",
           "hover:bg-accent/20 hover:border-primary/30",
           scriptDragActive && "border-primary bg-accent/30",
-          scriptFile && "border-primary/50 bg-accent/20",
-          showBorderAnimation && "animate-border-light"
+          scriptFile && "border-primary/50 bg-accent/20"
         )}
         onDragOver={(e) => {
           e.preventDefault();
