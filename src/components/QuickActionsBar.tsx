@@ -24,17 +24,22 @@ interface QuickActionsBarProps {
 
 export function QuickActionsBar({ onQuickLoad }: QuickActionsBarProps) {
   const [lastPlayed, setLastPlayed] = useState<Project | null>(null);
+  const [recentlyAdded, setRecentlyAdded] = useState<Project | null>(null);
   const [hasProjects, setHasProjects] = useState(false);
   const [isLoading, setIsLoading] = useState<string | null>(null);
 
-  // Fetch last played project for hint display
+  // Fetch last played and recently added projects for hint display
   useEffect(() => {
-    const fetchLastPlayed = async () => {
-      const project = await getLastPlayedProject();
-      setLastPlayed(project);
-      setHasProjects(!!project);
+    const fetchProjects = async () => {
+      const [lastPlayedProject, recentProjects] = await Promise.all([
+        getLastPlayedProject(),
+        getRecentlyAddedProjects(1),
+      ]);
+      setLastPlayed(lastPlayedProject);
+      setRecentlyAdded(recentProjects.length > 0 ? recentProjects[0] : null);
+      setHasProjects(!!lastPlayedProject || recentProjects.length > 0);
     };
-    fetchLastPlayed();
+    fetchProjects();
   }, []);
 
   const loadProjectWithResources = useCallback(
@@ -140,7 +145,14 @@ export function QuickActionsBar({ onQuickLoad }: QuickActionsBarProps) {
         ) : (
           <Sparkles className="h-5 w-5 text-amber-500" />
         )}
-        <span className="font-medium">Recently Added</span>
+        <div className="flex flex-col items-start">
+          <span className="font-medium">Recently Added</span>
+          {recentlyAdded && (
+            <span className="text-xs opacity-80 truncate max-w-[140px]">
+              {recentlyAdded.name}
+            </span>
+          )}
+        </div>
       </Button>
 
       {/* Play Randomly */}
