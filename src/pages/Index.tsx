@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { Headphones, Play, HelpCircle } from "lucide-react";
+import { Headphones, Play, HelpCircle } from "lucide-react"; // header icon
 import { FileUploader } from "@/components/FileUploader";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { CaptionDisplay } from "@/components/CaptionDisplay";
