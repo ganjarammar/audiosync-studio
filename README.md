@@ -1,73 +1,65 @@
-# Welcome to your Lovable project
+# PodLingo
 
-## Project info
+Learn languages through podcast captions with synchronized audio playback.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Features
 
-## How can I edit this code?
+- **Synchronized Captions**: Upload timestamped scripts and audio files for real-time caption display
+- **Vocabulary Tracking**: Click words to save them to your personal vocabulary library
+- **Project History**: Save and reload your audio/script combinations
+- **Script Search**: Search through captions and jump to specific timestamps
+- **Dark/Light Mode**: Toggle between themes with customizable accent colors
+- **Desktop App**: Native Windows/macOS/Linux app with auto-updates (built with Tauri)
 
-There are several ways of editing your application.
+## Script Format
 
-**Use Lovable**
+PodLingo expects timestamped scripts in this format:
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+```
+[00:00:00.000 - 00:00:05.500] First sentence of the transcript.
+[00:00:05.500 - 00:00:10.000] Second sentence continues here.
+```
 
-Changes made via Lovable will be committed automatically to this repo.
+## Development
 
-**Use your preferred IDE**
+### Web App
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+```bash
+# Install dependencies
+npm install
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Desktop App (Tauri)
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+# Install Rust (if not already installed)
+# https://www.rust-lang.org/tools/install
 
-**Use GitHub Codespaces**
+# Run in development mode
+npm run tauri dev
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Build for production
+npm run tauri build
+```
 
-## What technologies are used for this project?
+## Tech Stack
 
-This project is built with:
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS, shadcn/ui
+- **Desktop**: Tauri v2
+- **Storage**: IndexedDB (via idb)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Keyboard Shortcuts
 
-## How can I deploy this project?
+| Key | Action |
+|-----|--------|
+| `H` | Toggle history sidebar |
+| `B` | Toggle vocabulary library |
+| `F` | Toggle script search (when loaded) |
+| `D` | Toggle dark/light mode |
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## License
 
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+MIT
