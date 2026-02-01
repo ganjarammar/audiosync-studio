@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Headphones, Upload, FileText, Sparkles } from "lucide-react";
+import { Headphones, Sparkles } from "lucide-react";
 
 export function EmptyState() {
   // Animated bars for waveform visualization
@@ -91,54 +91,6 @@ export function EmptyState() {
         Upload your audio and script files to start practicing with synchronized captions
       </motion.p>
 
-      {/* Interactive file hints */}
-      <motion.div
-        className="flex flex-wrap justify-center gap-3"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-      >
-        <FileHint
-          icon={<Upload className="h-4 w-4" />}
-          label="Audio"
-          formats=".mp3, .wav"
-          delay={0}
-        />
-        <FileHint
-          icon={<FileText className="h-4 w-4" />}
-          label="Script"
-          formats=".txt, .srt"
-          delay={0.1}
-        />
-      </motion.div>
     </div>
-  );
-}
-
-function FileHint({
-  icon,
-  label,
-  formats,
-  delay,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  formats: string;
-  delay: number;
-}) {
-  return (
-    <motion.div
-      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-muted/50 border border-border/50 hover:border-primary/30 hover:bg-muted transition-colors cursor-default"
-      whileHover={{ scale: 1.02, y: -2 }}
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: 0.5 + delay }}
-    >
-      <div className="text-primary">{icon}</div>
-      <div className="flex flex-col">
-        <span className="text-sm font-medium text-foreground">{label}</span>
-        <span className="text-xs text-muted-foreground">{formats}</span>
-      </div>
-    </motion.div>
   );
 }
