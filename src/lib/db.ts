@@ -300,3 +300,68 @@ export async function getVocabularyPage(
     };
   });
 }
+
+// Update project playback position (for auto-checkpoint)
+export async function updateProjectPlaybackPosition(
+  projectId: string,
+  position: number,
+  sentenceIndex: number
+): Promise<void> {
+  const database = await initDB();
+  const project = await getProject(projectId);
+  if (!project) return;
+
+  const updatedProject: Project = {
+    ...project,
+    lastPosition: position,
+    lastSentenceIndex: sentenceIndex,
+    lastPlayedAt: Date.now(),
+  };
+
+  return saveProject(updatedProject);
+}
+
+// Toggle project favorite status
+export async function toggleProjectFavorite(projectId: string): Promise<boolean> {
+  const database = await initDB();
+  const project = await getProject(projectId);
+  if (!project) return false;
+
+  const newFavoriteStatus = !project.isFavorite;
+  const updatedProject: Project = {
+    ...project,
+    isFavorite: newFavoriteStatus,
+  };
+
+  await saveProject(updatedProject);
+  return newFavoriteStatus;
+}
+
+// Get the most recently played project
+export async function getLastPlayedProject(): Promise<Project | null> {
+  const projects = await getAllProjects();
+  if (projects.length === 0) return null;
+
+  return projects.reduce((latest, current) => {
+    const latestTime = latest.lastPlayedAt || latest.createdAt;
+    const currentTime = current.lastPlayedAt || current.createdAt;
+    return currentTime > latestTime ? current : latest;
+  });
+}
+
+// Get recently added projects (sorted by createdAt)
+export async function getRecentlyAddedProjects(limit: number = 1): Promise<Project[]> {
+  const projects = await getAllProjects();
+  return projects
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, limit);
+}
+
+// Get a random project
+export async function getRandomProject(): Promise<Project | null> {
+  const projects = await getAllProjects();
+  if (projects.length === 0) return null;
+
+  const randomIndex = Math.floor(Math.random() * projects.length);
+  return projects[randomIndex];
+}

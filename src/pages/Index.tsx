@@ -9,7 +9,9 @@ import { HistorySidebar } from "@/components/HistorySidebar";
 import { VocabularyLibrary } from "@/components/VocabularyLibrary";
 import { ScriptSearch } from "@/components/ScriptSearch";
 import { UpdateButton } from "@/components/UpdateButton";
+import { QuickActionsMenu, QuickLoadedProject } from "@/components/QuickActionsMenu";
 import { useProject } from "@/hooks/useProject";
+import { usePlaybackCheckpoint } from "@/hooks/usePlaybackCheckpoint";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +30,7 @@ const Index = () => {
     isLoading,
     isProcessed,
     canProcess,
+    currentProjectId,
     handleAudioUpload,
     handleScriptUpload,
     processFiles,
@@ -43,6 +46,14 @@ const Index = () => {
   const [seekToTime, setSeekToTime] = useState<number | null>(null);
 
   const isReady = audioUrl && sentences.length > 0 && isProcessed;
+
+  // Auto-checkpoint for playback position
+  usePlaybackCheckpoint({
+    projectId: currentProjectId,
+    sentences,
+    currentTime,
+    enabled: isReady,
+  });
 
   // Keyboard shortcuts
   const shortcuts = useMemo(
@@ -84,6 +95,19 @@ const Index = () => {
   }, []);
 
 
+  // Handle quick load from QuickActionsMenu
+  const handleQuickLoad = useCallback((loaded: QuickLoadedProject) => {
+    loadProject({
+      project: loaded.project,
+      audio: loaded.audio,
+      script: loaded.script,
+    });
+    setShouldAutoPlay(true);
+    if (loaded.seekToPosition !== undefined) {
+      setSeekToTime(loaded.seekToPosition);
+    }
+  }, [loadProject]);
+
   return (
     <div className="min-h-screen bg-background transition-colors duration-300">
       {/* Minimal Header */}
@@ -97,12 +121,17 @@ const Index = () => {
           </div>
           
           <div className="flex items-center gap-1">
+            <QuickActionsMenu onQuickLoad={handleQuickLoad} />
             <HistorySidebar
               open={historyOpen}
               onOpenChange={setHistoryOpen}
               onLoadProject={(loaded, autoPlay) => {
-                loadProject(loaded);
+                const result = loadProject(loaded);
                 setShouldAutoPlay(autoPlay ?? false);
+                // If loading from history with autoPlay and there's a saved position, seek to it
+                if (autoPlay && loaded.project.lastPosition !== undefined) {
+                  setSeekToTime(loaded.project.lastPosition);
+                }
               }}
             />
             <VocabularyLibrary open={vocabOpen} onOpenChange={setVocabOpen} />
