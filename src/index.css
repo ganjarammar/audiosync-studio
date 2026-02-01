@@ -141,44 +141,45 @@
   }
 
   /* Border running light animation for onboarding hint */
-  @keyframes border-light-spin {
-    0% {
-      transform: translate(-50%, -50%) rotate(0deg);
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
     }
-    100% {
-      transform: translate(-50%, -50%) rotate(360deg);
+    to {
+      transform: rotate(360deg);
     }
   }
 
   .animate-border-light {
     position: relative;
-    isolation: isolate;
+    z-index: 0;
+    background: hsl(var(--card)) !important;
+    border: none !important;
   }
 
   .animate-border-light::before {
     content: '';
     position: absolute;
+    z-index: -2;
     inset: -2px;
-    border-radius: inherit;
+    border-radius: 9999px;
     background: conic-gradient(
       from 0deg,
-      transparent 0deg,
-      hsl(var(--primary)) 30deg,
+      hsl(var(--primary)) 0deg,
       hsl(var(--primary)) 60deg,
-      transparent 90deg,
+      transparent 120deg,
       transparent 360deg
     );
-    animation: border-light-spin 2s linear infinite;
-    z-index: -2;
+    animation: spin 1.5s linear infinite;
   }
 
   .animate-border-light::after {
     content: '';
     position: absolute;
-    inset: 1px;
-    background: hsl(var(--card));
-    border-radius: inherit;
     z-index: -1;
+    inset: 1px;
+    border-radius: 9999px;
+    background: hsl(var(--card));
   }
 
   .animate-border-light:hover::before {
