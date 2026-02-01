@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -26,20 +26,34 @@ const colorOptions: ColorOption[] = [
   { name: "Yellow", hsl: "45 95% 55%", hslDark: "45 85% 42%", preview: "hsl(45, 95%, 55%)" },
 ];
 
+const STORAGE_KEY = "theme-color";
+
+const applyColorToDOM = (color: ColorOption) => {
+  const themeRoot = (document.querySelector(".dark") as HTMLElement | null) ??
+    document.documentElement;
+  themeRoot.style.setProperty("--primary", color.hsl);
+  themeRoot.style.setProperty("--primary-dark", color.hslDark);
+  themeRoot.style.setProperty("--ring", color.hsl);
+};
+
 export function ColorPicker() {
-  const [selectedColor, setSelectedColor] = useState<string>("Cyan");
+  const [selectedColor, setSelectedColor] = useState<string>(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored || "Cyan";
+  });
   const [open, setOpen] = useState(false);
+
+  // Restore color on mount
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    const color = colorOptions.find((c) => c.name === stored) || colorOptions[0];
+    applyColorToDOM(color);
+  }, []);
 
   const applyColor = (color: ColorOption) => {
     setSelectedColor(color.name);
-    // Our app applies `.dark` to a page wrapper, and that wrapper defines the CSS variables.
-    // So we must set the variables on the same element (inline styles win).
-    const themeRoot = (document.querySelector(".dark") as HTMLElement | null) ??
-      document.documentElement;
-
-    themeRoot.style.setProperty("--primary", color.hsl);
-    themeRoot.style.setProperty("--primary-dark", color.hslDark);
-    themeRoot.style.setProperty("--ring", color.hsl);
+    localStorage.setItem(STORAGE_KEY, color.name);
+    applyColorToDOM(color);
     setOpen(false);
   };
 
