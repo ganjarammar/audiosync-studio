@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { Mic, Play, HelpCircle } from "lucide-react";
+import { Headphones, Play, HelpCircle } from "lucide-react";
 import { FileUploader } from "@/components/FileUploader";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { CaptionDisplay } from "@/components/CaptionDisplay";
@@ -91,7 +91,7 @@ const Index = () => {
         <div className="container mx-auto flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary glow-box">
-              <Mic className="h-4 w-4 text-primary-foreground" />
+              <Headphones className="h-4 w-4 text-primary-foreground" />
             </div>
             <span className="text-lg font-semibold tracking-tight">PodLingo</span>
           </div>
@@ -157,7 +157,7 @@ const Index = () => {
           ) : (
             <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl glass p-12">
               <div className="h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center mb-6">
-                <Mic className="h-8 w-8 text-muted-foreground/50" />
+                <Headphones className="h-8 w-8 text-muted-foreground/50" />
               </div>
               <p className="text-lg text-muted-foreground text-center">
                 Upload files to preview captions
