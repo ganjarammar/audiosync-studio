@@ -148,4 +148,47 @@
   .gradient-dark {
     background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(220 30% 4%) 100%);
   }
+
+  /* Luminous border animation */
+  @keyframes border-spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  .luminous-border {
+    position: relative;
+    overflow: visible;
+    z-index: 0;
+  }
+
+  .luminous-border::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      hsl(var(--primary)) 10deg,
+      hsl(var(--primary) / 0.5) 30deg,
+      transparent 60deg,
+      transparent 360deg
+    );
+    animation: border-spin 3s linear infinite;
+    filter: blur(2px);
+    z-index: -2;
+  }
+
+  .luminous-border::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: hsl(var(--card));
+    z-index: -1;
+  }
 }
