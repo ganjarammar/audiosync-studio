@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Upload, Music, FileText, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +19,12 @@ export function FileUploader({
 }: FileUploaderProps) {
   const [audioDragActive, setAudioDragActive] = useState(false);
   const [scriptDragActive, setScriptDragActive] = useState(false);
+  const [showAnimation, setShowAnimation] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowAnimation(false), 15000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleAudioDrop = useCallback(
     async (e: React.DragEvent) => {
@@ -74,7 +80,8 @@ export function FileUploader({
           "glass transition-all duration-200",
           "hover:bg-accent/20 hover:border-primary/30",
           audioDragActive && "border-primary bg-accent/30",
-          audioFile && "border-primary/50 bg-accent/20"
+          audioFile && "border-primary/50 bg-accent/20",
+          showAnimation && !audioFile && !scriptFile && "luminous-border"
         )}
         onDragOver={(e) => {
           e.preventDefault();
@@ -119,7 +126,8 @@ export function FileUploader({
           "glass transition-all duration-200",
           "hover:bg-accent/20 hover:border-primary/30",
           scriptDragActive && "border-primary bg-accent/30",
-          scriptFile && "border-primary/50 bg-accent/20"
+          scriptFile && "border-primary/50 bg-accent/20",
+          showAnimation && !audioFile && !scriptFile && "luminous-border"
         )}
         onDragOver={(e) => {
           e.preventDefault();
