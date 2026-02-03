@@ -9,6 +9,7 @@ interface LuminousBorderProps {
 export function LuminousBorder({ children, active, className = "" }: LuminousBorderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -29,19 +30,22 @@ export function LuminousBorder({ children, active, className = "" }: LuminousBor
   }, []);
 
   const { width, height } = dimensions;
-  const rx = height / 2; // Pill shape radius
+  const rx = height / 2;
   const strokeWidth = 2;
   const padding = 2;
   
-  // SVG dimensions slightly larger than the button
   const svgWidth = width + padding * 2;
   const svgHeight = height + padding * 2;
   
-  // Rounded rect path for the pill shape
-  const pathLength = 200; // Normalized for animation
+  const pathLength = 200;
 
   return (
-    <div ref={containerRef} className={`relative ${className}`}>
+    <div 
+      ref={containerRef} 
+      className={`relative ${className}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {active && width > 0 && height > 0 && (
         <svg
           className="absolute pointer-events-none"
@@ -74,6 +78,7 @@ export function LuminousBorder({ children, active, className = "" }: LuminousBor
             strokeWidth={strokeWidth}
             pathLength={pathLength}
             className="luminous-stroke"
+            style={{ animationPlayState: isHovered ? 'paused' : 'running' }}
             filter="url(#glow)"
           />
         </svg>

@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState } from "react";
 import { Music, FileText, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LuminousBorder } from "./LuminousBorder";
@@ -20,12 +20,6 @@ export function FileUploader({
 }: FileUploaderProps) {
   const [audioDragActive, setAudioDragActive] = useState(false);
   const [scriptDragActive, setScriptDragActive] = useState(false);
-  const [showAnimation, setShowAnimation] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setShowAnimation(false), 15000);
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleAudioDrop = useCallback(
     async (e: React.DragEvent) => {
@@ -71,12 +65,10 @@ export function FileUploader({
     [onScriptUpload]
   );
 
-  const showLuminousBorder = showAnimation && !audioFile && !scriptFile;
-
   return (
     <div className="flex flex-wrap items-center justify-center gap-3">
       {/* Audio Upload Button */}
-      <LuminousBorder active={showLuminousBorder}>
+      <LuminousBorder active={!audioFile}>
         <label
           className={cn(
             "group relative cursor-pointer",
@@ -123,7 +115,7 @@ export function FileUploader({
       </LuminousBorder>
 
       {/* Script Upload Button */}
-      <LuminousBorder active={showLuminousBorder}>
+      <LuminousBorder active={!scriptFile}>
         <label
           className={cn(
             "group relative cursor-pointer",
