@@ -59,10 +59,14 @@ export function LuminousBorder({ children, active, className = "" }: LuminousBor
           fill="none"
         >
           <defs>
-            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+            <filter id="glow" x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur stdDeviation="3" result="blur1" />
+              <feGaussianBlur stdDeviation="6" result="blur2" />
+              <feGaussianBlur stdDeviation="10" result="blur3" />
               <feMerge>
-                <feMergeNode in="coloredBlur" />
+                <feMergeNode in="blur3" />
+                <feMergeNode in="blur2" />
+                <feMergeNode in="blur1" />
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
