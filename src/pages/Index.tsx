@@ -212,7 +212,6 @@ const Index = () => {
             audioFile={audioFile}
             scriptFile={scriptFile}
             isLoading={isLoading}
-            isProcessed={isProcessed}
           />
         </div>
       </main>
