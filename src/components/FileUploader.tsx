@@ -9,6 +9,7 @@ interface FileUploaderProps {
   audioFile: File | null;
   scriptFile: File | null;
   isLoading: boolean;
+  isProcessed?: boolean;
 }
 
 export function FileUploader({
@@ -17,6 +18,7 @@ export function FileUploader({
   audioFile,
   scriptFile,
   isLoading,
+  isProcessed = false,
 }: FileUploaderProps) {
   const [audioDragActive, setAudioDragActive] = useState(false);
   const [scriptDragActive, setScriptDragActive] = useState(false);
@@ -68,7 +70,7 @@ export function FileUploader({
   return (
     <div className="flex flex-wrap items-center justify-center gap-3">
       {/* Audio Upload Button */}
-      <LuminousBorder active={!audioFile}>
+      <LuminousBorder active={!audioFile || isProcessed}>
         <label
           className={cn(
             "group relative cursor-pointer",
@@ -115,7 +117,7 @@ export function FileUploader({
       </LuminousBorder>
 
       {/* Script Upload Button */}
-      <LuminousBorder active={!scriptFile}>
+      <LuminousBorder active={!scriptFile || isProcessed}>
         <label
           className={cn(
             "group relative cursor-pointer",
