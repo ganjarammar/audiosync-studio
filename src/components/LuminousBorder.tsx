@@ -32,7 +32,7 @@ export function LuminousBorder({ children, active, className = "" }: LuminousBor
   const { width, height } = dimensions;
   const rx = height / 2;
   const strokeWidth = 2;
-  const padding = 2;
+  const padding = 16;
   
   const svgWidth = width + padding * 2;
   const svgHeight = height + padding * 2;
