@@ -160,8 +160,8 @@
   }
 
   .luminous-stroke {
-    stroke-dasharray: 30 170;
+    stroke-dasharray: 20 180;
     stroke-dashoffset: 0;
-    animation: dash-travel 2s linear infinite;
+    animation: dash-travel 2.5s linear infinite;
   }
 }

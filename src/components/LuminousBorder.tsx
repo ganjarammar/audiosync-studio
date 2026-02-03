@@ -59,18 +59,10 @@ export function LuminousBorder({ children, active, className = "" }: LuminousBor
           fill="none"
         >
           <defs>
-            <linearGradient id="comet-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0" />
-              <stop offset="60%" stopColor="hsl(var(--primary))" stopOpacity="0.8" />
-              <stop offset="85%" stopColor="hsl(var(--primary))" stopOpacity="1" />
-              <stop offset="100%" stopColor="white" stopOpacity="1" />
-            </linearGradient>
-            <filter id="glow" x="-100%" y="-100%" width="300%" height="300%">
-              <feGaussianBlur stdDeviation="4" result="blur1" />
-              <feGaussianBlur stdDeviation="2" result="blur2" />
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="2" result="coloredBlur" />
               <feMerge>
-                <feMergeNode in="blur1" />
-                <feMergeNode in="blur2" />
+                <feMergeNode in="coloredBlur" />
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
@@ -82,8 +74,8 @@ export function LuminousBorder({ children, active, className = "" }: LuminousBor
             height={height - strokeWidth}
             rx={rx - strokeWidth / 2}
             ry={rx - strokeWidth / 2}
-            stroke="url(#comet-gradient)"
-            strokeWidth={strokeWidth + 1}
+            stroke="hsl(var(--primary))"
+            strokeWidth={strokeWidth}
             pathLength={pathLength}
             className="luminous-stroke"
             style={{ animationPlayState: isHovered ? 'paused' : 'running' }}
