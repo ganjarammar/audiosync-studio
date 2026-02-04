@@ -1,142 +1,96 @@
 
+# Fix Update Button Visibility in Tauri v2
 
-# Animated Luminous Border for Upload Buttons
+## Problem
 
-## Overview
+The update button is not visible in the desktop app because the Tauri detection method is outdated. In Tauri v2, the `__TAURI__` global object is not automatically injected into the window - it requires explicit configuration or a different detection approach.
 
-Add a neon-style animated border effect to the Audio and Script upload buttons where a glowing light continuously travels along the button's outline path, creating an eye-catching visual cue for new users.
+## Solution
 
-## Visual Effect
+There are two approaches to fix this:
 
-The effect creates a glowing "light dot" that orbits around the pill-shaped button border:
+### Option A: Enable Global Tauri Object (Quick Fix)
 
-```text
-    ╭───────────────╮
-   ●│   Audio       │     ← Glowing light travels clockwise
-    ╰───────────────╯
-         ↓ time
-    ╭───────────────╮
-    │   Audio      ●│
-    ╰───────────────╯
-```
+Add the `withGlobalTauri` option to `tauri.conf.json` to inject the `__TAURI__` object into the window, making the current detection work.
 
-The light will:
-- Use the theme's primary color (matching user's accent color choice)
-- Have a soft glow/blur effect for the neon aesthetic
-- Animate smoothly in a continuous loop
-- Stop once a file is uploaded (button shows completion state)
+### Option B: Use Tauri v2 Detection Method (Recommended)
+
+Update the detection logic in `UpdateButton.tsx` to use `@tauri-apps/api` which is the proper way to detect Tauri v2 environment.
+
+I recommend **Option B** as it's the officially supported method for Tauri v2.
 
 ---
 
-## Technical Approach
+## Changes Required
 
-### 1. CSS Animation Setup
+### 1. Update UpdateButton.tsx - Fix Tauri Detection
 
-Create a keyframe animation that rotates a conic gradient around the button. This technique uses:
-- A `::before` pseudo-element with a conic gradient (single bright spot fading to transparent)
-- Rotation animation to make the bright spot travel around
-- A `::after` pseudo-element to mask the inner area, leaving only the border visible
+Replace the old detection method with Tauri v2 compatible approach:
 
-### 2. Animation Keyframes
+```text
+Current (line 19):
+const isTauri = typeof window !== "undefined" && "__TAURI__" in window;
 
-```css
-@keyframes border-spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
+New approach:
+Use @tauri-apps/api to detect Tauri environment
+```
+
+The new detection will:
+- Check if the `@tauri-apps/api` internals are available
+- Use the proper Tauri v2 API pattern
+- Work reliably in both development and production builds
+
+### 2. Alternative: Update tauri.conf.json
+
+If we want to keep backward compatibility, we could add the global Tauri object:
+
+```json
+{
+  "app": {
+    "withGlobalTauri": true,
+    ...
   }
 }
 ```
 
-### 3. Luminous Border Class Structure
+However, this is considered legacy in Tauri v2 and the API approach is preferred.
 
-The `.luminous-border` class will use:
+---
 
-| Element | Purpose |
-|---------|---------|
-| `::before` | Spinning conic gradient with glowing light spot |
-| `::after` | Inner mask to create the hollow border effect |
-| Base element | Contains the actual button content |
+## Technical Details
 
-The conic gradient creates the traveling light:
-```css
-background: conic-gradient(
-  from 0deg,
-  transparent 0deg,
-  hsl(var(--primary)) 10deg,
-  hsl(var(--primary) / 0.5) 30deg,
-  transparent 60deg,
-  transparent 360deg
-);
+### Detection Options for Tauri v2
+
+| Method | Pros | Cons |
+|--------|------|------|
+| `window.__TAURI__` | Simple | Requires config change, legacy pattern |
+| `window.__TAURI_INTERNALS__` | Built-in to Tauri v2 | Undocumented, may change |
+| `navigator.userAgent` check | No dependency | Less reliable |
+| Try/catch API import | Official pattern | Slightly more complex |
+
+### Recommended Implementation
+
+```tsx
+// Check for Tauri v2 internals (always present in Tauri v2 apps)
+const isTauri = typeof window !== "undefined" && 
+  "__TAURI_INTERNALS__" in window;
 ```
 
-### 4. Component Integration
+Or the safer approach using environment:
 
-Add state to control animation visibility:
-- `showAnimation`: Boolean, defaults to `true` on mount
-- Animation stops when:
-  - A file is uploaded (either audio or script)
-  - After a timeout (optional, e.g., 15 seconds)
-
-Apply the luminous border class conditionally:
 ```tsx
-className={cn(
-  // ... existing classes
-  showAnimation && !audioFile && !scriptFile && "luminous-border"
-)}
+// Use Vite environment variable set during Tauri build
+const isTauri = import.meta.env.TAURI_ENV_PLATFORM !== undefined;
 ```
 
 ---
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| `src/index.css` | Add `@keyframes border-spin` animation and `.luminous-border` utility class with `::before` and `::after` pseudo-elements |
-| `src/components/FileUploader.tsx` | Add `showAnimation` state with useEffect for auto-dismiss, apply `luminous-border` class conditionally to both upload labels |
-
----
-
-## Technical Details
-
-### CSS Implementation (src/index.css)
-
-Add to `@layer utilities`:
-
-1. **Keyframe animation** for continuous rotation
-2. **`.luminous-border` class** with:
-   - `position: relative` and `overflow: visible`
-   - `::before` pseudo-element:
-     - Positioned slightly outside the button (`inset: -2px`)
-     - Conic gradient with bright spot
-     - `border-radius: inherit` for pill shape
-     - Spinning animation (3s duration)
-     - Blur filter for glow effect
-   - `::after` pseudo-element:
-     - Positioned to cover the inner area
-     - Background matches card color
-     - Creates the hollow border effect
-   - `z-index` management to keep content above the animation
-
-### Component State (src/components/FileUploader.tsx)
-
-```tsx
-const [showAnimation, setShowAnimation] = useState(true);
-
-useEffect(() => {
-  // Auto-dismiss after 15 seconds
-  const timer = setTimeout(() => setShowAnimation(false), 15000);
-  return () => clearTimeout(timer);
-}, []);
-
-// Also stop when files are uploaded (handled in className logic)
-```
-
----
+| File | Change |
+|------|--------|
+| `src/components/UpdateButton.tsx` | Update Tauri detection from `__TAURI__` to `__TAURI_INTERNALS__` (Tauri v2 pattern) |
 
 ## Summary
 
-This creates a striking neon-style animated border that draws attention to the upload buttons while maintaining the existing glassmorphism aesthetic. The effect uses the user's selected theme color and automatically stops once files are uploaded or after a timeout period.
-
+The fix is a one-line change to use Tauri v2's internal detection marker instead of the v1 global object. After this change, the update button will appear in the desktop app header.
