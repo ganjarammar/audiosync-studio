@@ -15,8 +15,8 @@ export function UpdateButton() {
   const [status, setStatus] = useState<UpdateStatus>("idle");
   const [progress, setProgress] = useState(0);
 
-  // Check if running in Tauri
-  const isTauri = typeof window !== "undefined" && "__TAURI__" in window;
+  // Check if running in Tauri v2 (uses __TAURI_INTERNALS__ instead of __TAURI__)
+  const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
   if (!isTauri) {
     return null; // Don't show in browser
