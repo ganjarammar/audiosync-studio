@@ -38,12 +38,22 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Decode Tauri private key
+        shell: bash
+        run: |
+          echo "${{ secrets.TAURI_SIGNING_PRIVATE_KEY_BASE64 }}" | base64 -d > tauri.key
+
+      - name: Debug private key file
+        run: |
+          ls -la
+          wc -c tauri.key
+
       - name: Build and release
         id: tauri-action
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: tauri.key
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: v__VERSION__
@@ -63,17 +73,6 @@ jobs:
           VERSION="${{ github.ref_name }}"
           VERSION="${VERSION#v}"
           
-          
-          echo "Debug: Checking for secret..."
-          if [ -n "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" ]; then
-            echo "Secret TAURI_SIGNING_PRIVATE_KEY is present (length: ${#TAURI_SIGNING_PRIVATE_KEY})."
-          else
-            echo "::error::Secret TAURI_SIGNING_PRIVATE_KEY is MISSING or EMPTY!"
-          fi
-
-          echo "Debug: Listing build artifacts..."
-          find src-tauri/target -maxdepth 5 -not -path '*/deps/*' || echo "Find failed"
-
           echo "Searching for signature file..."
           SIG_FILE=$(find src-tauri/target -name "*.exe.sig" | head -n 1)
           
