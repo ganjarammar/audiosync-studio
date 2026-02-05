@@ -63,8 +63,19 @@ jobs:
           VERSION="${{ github.ref_name }}"
           VERSION="${VERSION#v}"
           
+          
+          echo "Debug: Checking for secret..."
+          if [ -n "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" ]; then
+            echo "Secret TAURI_SIGNING_PRIVATE_KEY is present (length: ${#TAURI_SIGNING_PRIVATE_KEY})."
+          else
+            echo "::error::Secret TAURI_SIGNING_PRIVATE_KEY is MISSING or EMPTY!"
+          fi
+
+          echo "Debug: Listing build artifacts..."
+          find src-tauri/target -maxdepth 5 -not -path '*/deps/*' || echo "Find failed"
+
           echo "Searching for signature file..."
-          SIG_FILE=$(find src-tauri/target/release/bundle/nsis -name "*.exe.sig" | head -n 1)
+          SIG_FILE=$(find src-tauri/target -name "*.exe.sig" | head -n 1)
           
           if [ -z "$SIG_FILE" ]; then
             echo "Signature file not found in expected path. Searching recursively..."
