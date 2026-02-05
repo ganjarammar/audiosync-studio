@@ -53,3 +53,52 @@ jobs:
           prerelease: false
           includeUpdaterJson: true
           updaterJsonPreferNsis: true
+
+      - name: Generate and upload manual latest.json
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          
+          echo "Searching for signature file..."
+          SIG_FILE=$(find src-tauri/target/release/bundle/nsis -name "*.exe.sig" | head -n 1)
+          
+          if [ -z "$SIG_FILE" ]; then
+            echo "Signature file not found in expected path. Searching recursively..."
+            SIG_FILE=$(find src-tauri/target -name "*.exe.sig" | head -n 1)
+          fi
+          
+          if [ -z "$SIG_FILE" ]; then
+            echo "Error: Signature file not found anywhere."
+            exit 1
+          fi
+          
+          echo "Found signature file: $SIG_FILE"
+          SIGNATURE=$(cat "$SIG_FILE")
+          
+          EXE_FILE="${SIG_FILE%.sig}"
+          EXE_NAME=$(basename "$EXE_FILE")
+          
+          # Construct the download URL
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/$EXE_NAME"
+          
+          echo "Generating latest.json..."
+          cat <<EOF > latest.json
+          {
+            "version": "$VERSION",
+            "notes": "Update to version $VERSION",
+            "pub_date": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "platforms": {
+              "windows-x86_64": {
+                "signature": "$SIGNATURE",
+                "url": "$DOWNLOAD_URL"
+              }
+            }
+          }
+          EOF
+          
+          echo "Uploading latest.json to release..."
+          gh release upload "${{ github.ref_name }}" latest.json --clobber
