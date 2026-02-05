@@ -39,6 +39,7 @@ jobs:
         run: npm install
 
       - name: Build and release
+        id: tauri-action
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -50,67 +51,5 @@ jobs:
           releaseBody: "See the assets to download and install this version."
           releaseDraft: false
           prerelease: false
-
-      - name: Get version from tag
-        id: get_version
-        shell: bash
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "Version: $VERSION"
-
-      - name: Generate latest.json manually
-        shell: pwsh
-        run: |
-          $version = "${{ steps.get_version.outputs.VERSION }}"
-          $notes = "See the assets to download and install this version."
-          $pubDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-          
-          Write-Host "Version: $version"
-          Write-Host "Searching for signature file..."
-          
-          # Find signature file with full path
-          $bundlePath = "src-tauri/target/release/bundle/nsis"
-          Write-Host "Looking in: $bundlePath"
-          
-          $sigFiles = Get-ChildItem -Path $bundlePath -Filter "*.exe.sig" -File -ErrorAction SilentlyContinue
-          
-          if ($sigFiles.Count -eq 0) {
-            Write-Host "Files in bundle directory:"
-            Get-ChildItem -Path $bundlePath -Recurse
-            Write-Error "No .exe.sig file found in $bundlePath"
-            exit 1
-          }
-          
-          $sigFile = $sigFiles | Select-Object -First 1
-          Write-Host "Found signature file: $($sigFile.FullName)"
-          
-          $signature = (Get-Content $sigFile.FullName -Raw).Trim()
-          Write-Host "Signature length: $($signature.Length) characters"
-          
-          # Create JSON object
-          $jsonObject = @{
-            version = $version
-            notes = $notes
-            pub_date = $pubDate
-            platforms = @{
-              "windows-x86_64" = @{
-                signature = $signature
-                url = "https://github.com/${{ github.repository }}/releases/download/v${version}/PodLingo_${version}_x64-setup.exe"
-              }
-            }
-          }
-          
-          # Convert to JSON and save
-          $json = $jsonObject | ConvertTo-Json -Depth 10
-          $json | Out-File -FilePath "latest.json" -Encoding utf8NoBOM
-          
-          Write-Host "`nGenerated latest.json:"
-          Get-Content "latest.json"
-
-      - name: Upload latest.json to release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: latest.json
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          includeUpdaterJson: true
+          updaterJsonPreferNsis: true
