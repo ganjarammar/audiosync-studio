@@ -43,10 +43,12 @@ jobs:
         run: |
           echo "${{ secrets.TAURI_SIGNING_PRIVATE_KEY_BASE64 }}" | base64 -d > tauri.key
 
-      - name: Debug private key file
+      - name: Debug signing key
+        shell: pwsh
         run: |
-          ls -la
-          wc -c tauri.key
+          Get-ChildItem
+          Get-Item tauri.key
+          (Get-Item tauri.key).Length
 
       - name: Build and release
         id: tauri-action
