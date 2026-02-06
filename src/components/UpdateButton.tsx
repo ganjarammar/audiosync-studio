@@ -25,29 +25,29 @@ export function UpdateButton() {
   const checkForUpdates = async () => {
     try {
       setStatus("checking");
-      
+
       const { check } = await import("@tauri-apps/plugin-updater");
       const { ask, message } = await import("@tauri-apps/plugin-dialog");
       const { relaunch } = await import("@tauri-apps/plugin-process");
-      
+
       const update = await check();
-      
+
       if (update) {
         setStatus("available");
-        
+
         const confirmed = await ask(
           `Version ${update.version} is available!\n\nWould you like to update now?`,
-          { 
-            title: "Update Available", 
-            okLabel: "Update Now", 
+          {
+            title: "Update Available",
+            okLabel: "Update Now",
             cancelLabel: "Later",
             kind: "info"
           }
         );
-        
+
         if (confirmed) {
           setStatus("downloading");
-          
+
           await update.downloadAndInstall((event) => {
             if (event.event === "Started" && event.data.contentLength) {
               setProgress(0);
@@ -58,26 +58,30 @@ export function UpdateButton() {
               setProgress(100);
             }
           });
-          
+
           setStatus("ready");
           toast.success("Update installed! Restarting...");
-          
+
           await relaunch();
         } else {
           setStatus("idle");
         }
       } else {
         setStatus("idle");
-        await message("You're running the latest version!", { 
+        await message("You're running the latest version!", {
           title: "Up to Date",
           kind: "info"
         });
       }
     } catch (error) {
       console.error("Update check failed:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      await message(`Failed to check for updates: ${errorMessage}`, {
+        title: "Update Error",
+        kind: "error",
+      });
       setStatus("error");
-      toast.error("Failed to check for updates");
-      
+
       setTimeout(() => setStatus("idle"), 3000);
     }
   };

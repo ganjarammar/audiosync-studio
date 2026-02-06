@@ -1,7 +1,7 @@
 {
   "$schema": "../../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "PodLingo",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "identifier": "com.podlingo.studio",
   "build": {
     "frontendDist": "../dist",
@@ -36,6 +36,10 @@
     ]
   },
   "plugins": {
+    "log": {
+      "level": "info",
+      "attachConsole": true
+    },
     "updater": {
       "active": true,
       "dialog": false,
