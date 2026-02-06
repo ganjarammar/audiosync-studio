@@ -32,7 +32,7 @@ export function UpdateButton() {
       
       const update = await check();
       
-      if (update?.available) {
+      if (update) {
         setStatus("available");
         
         const confirmed = await ask(
