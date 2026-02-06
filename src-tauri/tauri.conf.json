@@ -1,7 +1,7 @@
 {
   "$schema": "../../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "PodLingo",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "identifier": "com.podlingo.studio",
   "build": {
     "frontendDist": "../dist",
@@ -46,7 +46,7 @@
       "endpoints": [
         "https://github.com/ganjarammar/audiosync-studio/releases/latest/download/latest.json"
       ],
-      "pubkey": "RWRl+ofxXO8nOZrWgt9qW9SyQxeKWf5WbMDAUM+damKBKz7afMsMKrMS"
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM5MjdFRjVDRjE4N0ZBNjUKUlVSbCtvZnhYTzhuT1pyV2d0OXFXOVN5UXhlS1dmNVdiTURBVU0rZGFtS0JLejdhZk1zTUtyTVMK"
     }
   }
 }
