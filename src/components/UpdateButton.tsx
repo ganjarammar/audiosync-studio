@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { RefreshCw, Check, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,76 +8,98 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { check } from "@tauri-apps/plugin-updater";
-import { ask, message } from "@tauri-apps/plugin-dialog";
-import { relaunch } from "@tauri-apps/plugin-process";
 
-type UpdateStatus = "idle" | "checking" | "available" | "downloading" | "ready" | "error";
+type UpdateStatus = "idle" | "checking" | "available" | "downloading" | "ready" | "error" | "unavailable";
+
+// Types for the updater
+interface Update {
+  version: string;
+  downloadAndInstall: (callback: (event: DownloadEvent) => void) => Promise<void>;
+}
+
+interface DownloadEvent {
+  event: "Started" | "Progress" | "Finished";
+  data: {
+    contentLength?: number;
+    chunkLength?: number;
+  };
+}
 
 export function UpdateButton() {
   const [status, setStatus] = useState<UpdateStatus>("idle");
   const [progress, setProgress] = useState(0);
+  const [updaterAvailable, setUpdaterAvailable] = useState(false);
 
-  // Check if running in Tauri v2 (uses __TAURI_INTERNALS__ instead of __TAURI__)
+  // Check if running in Tauri v2
   const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
-  if (!isTauri) {
-    return null; // Don't show in browser
+  // Check if updater module is available on mount
+  useEffect(() => {
+    if (!isTauri) return;
+
+    // Try to load the updater module to see if it's available
+    const checkUpdaterAvailable = async () => {
+      try {
+        // Use window.__TAURI_INTERNALS__ to check if updater is registered
+        const internals = (window as any).__TAURI_INTERNALS__;
+        if (internals && typeof internals.invoke === "function") {
+          setUpdaterAvailable(true);
+        }
+      } catch {
+        setUpdaterAvailable(false);
+      }
+    };
+
+    checkUpdaterAvailable();
+  }, [isTauri]);
+
+  if (!isTauri || !updaterAvailable) {
+    return null;
   }
 
   const checkForUpdates = async () => {
     try {
       setStatus("checking");
-
       console.log("[Updater] Starting update check...");
-      console.log("[Updater] Calling check()...");
 
-      // Add timeout to prevent infinite spinning
-      const timeoutPromise = new Promise<null>((_, reject) => {
-        setTimeout(() => reject(new Error("Update check timed out after 30 seconds")), 30000);
-      });
+      // Use Tauri's invoke directly to call the updater
+      const internals = (window as any).__TAURI_INTERNALS__;
 
-      const update = await Promise.race([check(), timeoutPromise]);
+      // Check for updates using the plugin command
+      const update = await internals.invoke("plugin:updater|check");
 
       console.log("[Updater] check() returned:", update);
 
       if (update) {
         setStatus("available");
 
-        const confirmed = await ask(
-          `Version ${update.version} is available!\n\nWould you like to update now?`,
-          {
-            title: "Update Available",
-            okLabel: "Update Now",
-            cancelLabel: "Later",
-            kind: "info"
-          }
-        );
+        // Use dialog plugin
+        const confirmed = await internals.invoke("plugin:dialog|ask", {
+          message: `Version ${update.version} is available!\n\nWould you like to update now?`,
+          title: "Update Available",
+          okLabel: "Update Now",
+          cancelLabel: "Later",
+          kind: "info"
+        });
 
         if (confirmed) {
           setStatus("downloading");
 
-          await update.downloadAndInstall((event) => {
-            if (event.event === "Started" && event.data.contentLength) {
-              setProgress(0);
-            } else if (event.event === "Progress") {
-              const percent = Math.round((event.data.chunkLength / (event.data.contentLength || 1)) * 100);
-              setProgress(percent);
-            } else if (event.event === "Finished") {
-              setProgress(100);
-            }
-          });
+          // Download and install
+          await internals.invoke("plugin:updater|download_and_install");
 
           setStatus("ready");
           toast.success("Update installed! Restarting...");
 
-          await relaunch();
+          // Relaunch using process plugin
+          await internals.invoke("plugin:process|restart");
         } else {
           setStatus("idle");
         }
       } else {
         setStatus("idle");
-        await message("You're running the latest version!", {
+        await internals.invoke("plugin:dialog|message", {
+          message: "You're running the latest version!",
           title: "Up to Date",
           kind: "info"
         });
@@ -85,9 +107,8 @@ export function UpdateButton() {
     } catch (error) {
       console.error("Update check failed:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      toast.error(`Failed to check for updates: ${errorMessage}`);
+      toast.error(`Update check failed: ${errorMessage}`);
       setStatus("error");
-
       setTimeout(() => setStatus("idle"), 3000);
     }
   };
