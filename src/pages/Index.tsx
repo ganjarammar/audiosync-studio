@@ -120,7 +120,7 @@ const Index = () => {
             </div>
             <span className="text-lg font-semibold tracking-tight">PodLingo</span>
           </div>
-          
+
           <div className="flex items-center gap-1">
             <HistorySidebar
               open={historyOpen}
@@ -212,6 +212,8 @@ const Index = () => {
             audioFile={audioFile}
             scriptFile={scriptFile}
             isLoading={isLoading}
+            hasActiveAudio={!!audioUrl}
+            hasActiveScript={sentences.length > 0}
           />
         </div>
       </main>

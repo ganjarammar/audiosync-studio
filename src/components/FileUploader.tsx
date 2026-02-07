@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { Music, FileText, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { LuminousBorder } from "./LuminousBorder";
+
 
 interface FileUploaderProps {
   onAudioUpload: (file: File) => Promise<void>;
@@ -9,6 +9,8 @@ interface FileUploaderProps {
   audioFile: File | null;
   scriptFile: File | null;
   isLoading: boolean;
+  hasActiveAudio?: boolean;
+  hasActiveScript?: boolean;
 }
 
 export function FileUploader({
@@ -17,9 +19,13 @@ export function FileUploader({
   audioFile,
   scriptFile,
   isLoading,
+  hasActiveAudio = false,
+  hasActiveScript = false,
 }: FileUploaderProps) {
   const [audioDragActive, setAudioDragActive] = useState(false);
   const [scriptDragActive, setScriptDragActive] = useState(false);
+  const [audioHovered, setAudioHovered] = useState(false);
+  const [scriptHovered, setScriptHovered] = useState(false);
 
   const handleAudioDrop = useCallback(
     async (e: React.DragEvent) => {
@@ -66,100 +72,121 @@ export function FileUploader({
   );
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-3">
+    <div className="flex flex-wrap items-center justify-center gap-4">
       {/* Audio Upload Button */}
-      <LuminousBorder active={!audioFile}>
-        <label
-          className={cn(
-            "group relative cursor-pointer",
-            "flex items-center gap-2 rounded-full px-5 py-2.5",
-            "glass transition-all duration-200",
-            "hover:bg-accent/20 hover:border-primary/30",
-            audioDragActive && "border-primary bg-accent/30",
-            audioFile && "border-primary/50 bg-accent/20"
-          )}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setAudioDragActive(true);
-          }}
-          onDragLeave={() => setAudioDragActive(false)}
-          onDrop={handleAudioDrop}
-        >
-          <input
-            type="file"
-            accept="audio/*"
-            onChange={handleAudioChange}
-            className="sr-only"
-            disabled={isLoading}
-          />
+      <label
+        className={cn(
+          "group relative flex cursor-pointer items-center gap-3 rounded-2xl border px-6 py-4 transition-all duration-300",
+          "hover:-translate-y-0.5 hover:shadow-[0_0_20px_-5px_hsl(var(--primary)/0.3)]",
+          audioDragActive
+            ? "border-primary bg-primary/10 shadow-[0_0_20px_-5px_hsl(var(--primary)/0.2)]"
+            : "border-border/40 bg-card/40 backdrop-blur-sm hover:border-primary/50 hover:bg-primary/5",
+          // Show active state if file is uploaded manually OR if we have active audio from other source
+          (audioFile || hasActiveAudio)
+            ? "border-primary/60 bg-primary/10 shadow-[0_0_15px_-5px_hsl(var(--primary)/0.15)]"
+            : !audioDragActive && "animate-pulse-glow border-primary/30"
+        )}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setAudioDragActive(true);
+        }}
+        onDragLeave={() => setAudioDragActive(false)}
+        onDrop={handleAudioDrop}
+        onMouseEnter={() => setAudioHovered(true)}
+        onMouseLeave={() => setAudioHovered(false)}
+      >
+        <div className={cn(
+          "flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-300",
+          (audioFile || hasActiveAudio) ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground"
+        )}>
           {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          ) : audioFile ? (
-            <Check className="h-4 w-4 text-primary" />
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (audioFile || hasActiveAudio) && !audioHovered ? (
+            <Check className="h-5 w-5" />
           ) : (
-            <Music className="h-4 w-4 text-primary/70 group-hover:text-primary transition-colors" />
+            <Music className="h-5 w-5" />
           )}
+        </div>
+
+        <input
+          type="file"
+          accept="audio/*"
+          onChange={handleAudioChange}
+          className="sr-only"
+          disabled={isLoading}
+        />
+
+        <div className="flex flex-col">
           <span className={cn(
-            "text-sm transition-colors",
-            audioFile ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
+            "text-sm font-medium transition-colors",
+            (audioFile || hasActiveAudio) ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
           )}>
-            {audioFile ? (
-              <span className="max-w-[150px] truncate inline-block align-middle">
-                {audioFile.name}
-              </span>
-            ) : (
-              "Audio"
-            )}
+            {audioFile ? "Audio Loaded" : (hasActiveAudio && !audioHovered) ? "Audio Playing" : "Upload Audio"}
           </span>
-        </label>
-      </LuminousBorder>
+          {audioFile && (
+            <span className="max-w-[120px] truncate text-xs text-muted-foreground">
+              {audioFile.name}
+            </span>
+          )}
+        </div>
+      </label>
 
       {/* Script Upload Button */}
-      <LuminousBorder active={!scriptFile}>
-        <label
-          className={cn(
-            "group relative cursor-pointer",
-            "flex items-center gap-2 rounded-full px-5 py-2.5",
-            "glass transition-all duration-200",
-            "hover:bg-accent/20 hover:border-primary/30",
-            scriptDragActive && "border-primary bg-accent/30",
-            scriptFile && "border-primary/50 bg-accent/20"
-          )}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setScriptDragActive(true);
-          }}
-          onDragLeave={() => setScriptDragActive(false)}
-          onDrop={handleScriptDrop}
-        >
-          <input
-            type="file"
-            accept=".txt,.srt,.vtt"
-            onChange={handleScriptChange}
-            className="sr-only"
-            disabled={isLoading}
-          />
+      <label
+        className={cn(
+          "group relative flex cursor-pointer items-center gap-3 rounded-2xl border px-6 py-4 transition-all duration-300",
+          "hover:-translate-y-0.5 hover:shadow-[0_0_20px_-5px_hsl(var(--primary)/0.3)]",
+          scriptDragActive
+            ? "border-primary bg-primary/10 shadow-[0_0_20px_-5px_hsl(var(--primary)/0.2)]"
+            : "border-border/40 bg-card/40 backdrop-blur-sm hover:border-primary/50 hover:bg-primary/5",
+          (scriptFile || hasActiveScript)
+            ? "border-primary/60 bg-primary/10 shadow-[0_0_15px_-5px_hsl(var(--primary)/0.15)]"
+            : !scriptDragActive && "animate-pulse-glow border-primary/30"
+        )}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setScriptDragActive(true);
+        }}
+        onDragLeave={() => setScriptDragActive(false)}
+        onDrop={handleScriptDrop}
+        onMouseEnter={() => setScriptHovered(true)}
+        onMouseLeave={() => setScriptHovered(false)}
+      >
+        <div className={cn(
+          "flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-300",
+          (scriptFile || hasActiveScript) ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground"
+        )}>
           {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          ) : scriptFile ? (
-            <Check className="h-4 w-4 text-primary" />
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (scriptFile || hasActiveScript) && !scriptHovered ? (
+            <Check className="h-5 w-5" />
           ) : (
-            <FileText className="h-4 w-4 text-primary/70 group-hover:text-primary transition-colors" />
+            <FileText className="h-5 w-5" />
           )}
+        </div>
+
+        <input
+          type="file"
+          accept=".txt,.srt,.vtt"
+          onChange={handleScriptChange}
+          className="sr-only"
+          disabled={isLoading}
+        />
+
+        <div className="flex flex-col">
           <span className={cn(
-            "text-sm transition-colors",
-            scriptFile ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
+            "text-sm font-medium transition-colors",
+            (scriptFile || hasActiveScript) ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
           )}>
-            {scriptFile ? (
-              <span className="max-w-[150px] truncate inline-block align-middle">
-                {scriptFile.name}
-              </span>
-            ) : (
-              "Script"
-            )}
+            {scriptFile ? "Script Loaded" : (hasActiveScript && !scriptHovered) ? "Script Ready" : "Upload Script"}
           </span>
-        </label>
-      </LuminousBorder>
-    </div>
+          {scriptFile && (
+            <span className="max-w-[120px] truncate text-xs text-muted-foreground">
+              {scriptFile.name}
+            </span>
+          )}
+        </div>
+      </label >
+    </div >
   );
 }
