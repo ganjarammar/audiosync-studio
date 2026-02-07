@@ -1,7 +1,7 @@
 {
   "$schema": "../../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "PodLingo",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "identifier": "com.podlingo.studio",
   "build": {
     "frontendDist": "../dist",
@@ -36,10 +36,6 @@
     ]
   },
   "plugins": {
-    "log": {
-      "level": "info",
-      "attachConsole": true
-    },
     "updater": {
       "endpoints": [
         "https://github.com/ganjarammar/audiosync-studio/releases/latest/download/latest.json"
