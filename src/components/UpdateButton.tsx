@@ -16,35 +16,21 @@ interface Update {
   rid: number;
 }
 
-// Create a minimal Channel class that works with Tauri IPC
-class TauriChannel {
-  private __TAURI_CHANNEL_MARKER__ = true;
-  private id: number;
-  private callback: ((message: any) => void) | null = null;
+// Create a minimal Channel that works with Tauri IPC
+// The channel ID must be registered via transformCallback and passed as a number
+function createChannel(callback: (message: any) => void): number {
+  const internals = (window as any).__TAURI_INTERNALS__;
 
-  constructor() {
-    // Generate unique channel ID
-    this.id = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
-
-    // Register the handler globally
-    const key = `__TAURI_CHANNEL_CALLBACK_${this.id}__`;
-    (window as any)[key] = (message: any) => {
-      if (this.callback) {
-        this.callback(message);
-      }
-    };
+  // Tauri uses transformCallback to register callbacks and get an ID
+  if (internals && typeof internals.transformCallback === "function") {
+    return internals.transformCallback(callback);
   }
 
-  set onmessage(handler: (message: any) => void) {
-    this.callback = handler;
-  }
-
-  toJSON() {
-    return {
-      __TAURI_CHANNEL_MARKER__: true,
-      id: this.id,
-    };
-  }
+  // Fallback: register manually
+  const id = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+  const key = `_${id}`;
+  (window as any)[key] = callback;
+  return id;
 }
 
 export function UpdateButton() {
@@ -100,10 +86,8 @@ export function UpdateButton() {
           setStatus("downloading");
           console.log(`[Updater] Downloading update with rid: ${update.rid}`);
 
-          // Create channel for progress events
-          const onEvent = new TauriChannel();
-
-          onEvent.onmessage = (event: any) => {
+          // Create channel callback ID for progress events
+          const onEvent = createChannel((event: any) => {
             console.log("[Updater] Progress event:", event);
             if (event?.event === "Started") {
               setProgress(0);
@@ -112,7 +96,7 @@ export function UpdateButton() {
             } else if (event?.event === "Finished") {
               setProgress(100);
             }
-          };
+          });
 
           await internals.invoke("plugin:updater|download_and_install", {
             rid: update.rid,
