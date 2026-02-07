@@ -100,7 +100,7 @@ export function UpdateButton() {
 
           await internals.invoke("plugin:updater|download_and_install", {
             rid: update.rid,
-            onEvent: onEvent
+            onEvent: String(onEvent)
           });
 
           setStatus("ready");
