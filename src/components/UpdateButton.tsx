@@ -13,8 +13,38 @@ type UpdateStatus = "idle" | "checking" | "available" | "downloading" | "ready" 
 
 interface Update {
   version: string;
-  rid: number; // Resource ID required for download_and_install
-  available: boolean;
+  rid: number;
+}
+
+// Create a minimal Channel class that works with Tauri IPC
+class TauriChannel {
+  private __TAURI_CHANNEL_MARKER__ = true;
+  private id: number;
+  private callback: ((message: any) => void) | null = null;
+
+  constructor() {
+    // Generate unique channel ID
+    this.id = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+
+    // Register the handler globally
+    const key = `__TAURI_CHANNEL_CALLBACK_${this.id}__`;
+    (window as any)[key] = (message: any) => {
+      if (this.callback) {
+        this.callback(message);
+      }
+    };
+  }
+
+  set onmessage(handler: (message: any) => void) {
+    this.callback = handler;
+  }
+
+  toJSON() {
+    return {
+      __TAURI_CHANNEL_MARKER__: true,
+      id: this.id,
+    };
+  }
 }
 
 export function UpdateButton() {
@@ -22,17 +52,13 @@ export function UpdateButton() {
   const [progress, setProgress] = useState(0);
   const [updaterAvailable, setUpdaterAvailable] = useState(false);
 
-  // Check if running in Tauri v2
   const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
-  // Check if updater module is available on mount
   useEffect(() => {
     if (!isTauri) return;
 
-    // Try to load the updater module to see if it's available
     const checkUpdaterAvailable = async () => {
       try {
-        // Use window.__TAURI_INTERNALS__ to check if updater is registered
         const internals = (window as any).__TAURI_INTERNALS__;
         if (internals && typeof internals.invoke === "function") {
           setUpdaterAvailable(true);
@@ -54,19 +80,14 @@ export function UpdateButton() {
       setStatus("checking");
       console.log("[Updater] Starting update check...");
 
-      // Use Tauri's invoke directly to call the updater
       const internals = (window as any).__TAURI_INTERNALS__;
-
-      // Check for updates using the plugin command
       const update = await internals.invoke("plugin:updater|check") as Update;
 
       console.log("[Updater] check() returned:", update);
 
-      // In the raw plugin response, we might check for existence of properties
       if (update && update.version) {
         setStatus("available");
 
-        // Use dialog plugin
         const confirmed = await internals.invoke("plugin:dialog|ask", {
           message: `Version ${update.version} is available!\n\nWould you like to update now?`,
           title: "Update Available",
@@ -77,37 +98,30 @@ export function UpdateButton() {
 
         if (confirmed) {
           setStatus("downloading");
-
-          // Download and install
-          // We must pass the 'rid' and 'onEvent' channel
           console.log(`[Updater] Downloading update with rid: ${update.rid}`);
 
-          // Create a channel for progress events using Tauri internals
-          const { Channel } = internals.core || internals;
-          const onEvent = new Channel();
+          // Create channel for progress events
+          const onEvent = new TauriChannel();
 
-          // Listen for progress events
           onEvent.onmessage = (event: any) => {
             console.log("[Updater] Progress event:", event);
-            if (event.event === "Started" && event.data?.contentLength) {
+            if (event?.event === "Started") {
               setProgress(0);
-            } else if (event.event === "Progress" && event.data?.chunkLength) {
-              // Calculate rough progress
+            } else if (event?.event === "Progress") {
               setProgress((prev) => Math.min(prev + 5, 95));
-            } else if (event.event === "Finished") {
+            } else if (event?.event === "Finished") {
               setProgress(100);
             }
           };
 
           await internals.invoke("plugin:updater|download_and_install", {
             rid: update.rid,
-            onEvent
+            onEvent: onEvent
           });
 
           setStatus("ready");
           toast.success("Update installed! Restarting...");
 
-          // Relaunch using process plugin
           await internals.invoke("plugin:process|restart");
         } else {
           setStatus("idle");
