@@ -11,18 +11,10 @@ import { toast } from "sonner";
 
 type UpdateStatus = "idle" | "checking" | "available" | "downloading" | "ready" | "error" | "unavailable";
 
-// Types for the updater
 interface Update {
   version: string;
-  downloadAndInstall: (callback: (event: DownloadEvent) => void) => Promise<void>;
-}
-
-interface DownloadEvent {
-  event: "Started" | "Progress" | "Finished";
-  data: {
-    contentLength?: number;
-    chunkLength?: number;
-  };
+  rid: number; // Resource ID required for download_and_install
+  available: boolean;
 }
 
 export function UpdateButton() {
@@ -66,11 +58,12 @@ export function UpdateButton() {
       const internals = (window as any).__TAURI_INTERNALS__;
 
       // Check for updates using the plugin command
-      const update = await internals.invoke("plugin:updater|check");
+      const update = await internals.invoke("plugin:updater|check") as Update;
 
       console.log("[Updater] check() returned:", update);
 
-      if (update) {
+      // In the raw plugin response, we might check for existence of properties
+      if (update && update.version) {
         setStatus("available");
 
         // Use dialog plugin
@@ -86,7 +79,11 @@ export function UpdateButton() {
           setStatus("downloading");
 
           // Download and install
-          await internals.invoke("plugin:updater|download_and_install");
+          // We must pass the 'rid' that we got from the check command
+          console.log(`[Updater] Downloading update with rid: ${update.rid}`);
+          await internals.invoke("plugin:updater|download_and_install", {
+            rid: update.rid
+          });
 
           setStatus("ready");
           toast.success("Update installed! Restarting...");
