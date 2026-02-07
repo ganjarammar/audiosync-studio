@@ -79,10 +79,29 @@ export function UpdateButton() {
           setStatus("downloading");
 
           // Download and install
-          // We must pass the 'rid' that we got from the check command
+          // We must pass the 'rid' and 'onEvent' channel
           console.log(`[Updater] Downloading update with rid: ${update.rid}`);
+
+          // Create a channel for progress events using Tauri internals
+          const { Channel } = internals.core || internals;
+          const onEvent = new Channel();
+
+          // Listen for progress events
+          onEvent.onmessage = (event: any) => {
+            console.log("[Updater] Progress event:", event);
+            if (event.event === "Started" && event.data?.contentLength) {
+              setProgress(0);
+            } else if (event.event === "Progress" && event.data?.chunkLength) {
+              // Calculate rough progress
+              setProgress((prev) => Math.min(prev + 5, 95));
+            } else if (event.event === "Finished") {
+              setProgress(100);
+            }
+          };
+
           await internals.invoke("plugin:updater|download_and_install", {
-            rid: update.rid
+            rid: update.rid,
+            onEvent
           });
 
           setStatus("ready");
