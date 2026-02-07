@@ -1,0 +1,11 @@
+{
+  "notes": "See the assets to download and install this version.",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSbCtvZnhYTzhuT2FRbGt1ekw1eUhBR2Z2RHE4R2VJR1VSYmNyWDd2VTgyT3NEUUhLcjdzVW5IdlV3UTlEbmNVVEwxTk1aL3pCTWxxbjVLcEt2blFBdXd2aUg4aW5YK2dJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzcwMzkxOTE4CWZpbGU6UG9kTGluZ29fMS4wLjlfeDY0LXNldHVwLmV4ZQovNlFOVDRQVC95UVpJVnAvOUp0NytpSHM2RTU2R0gxUm5ON3JkanhVV0NMQzFPY0FNbmFBaVJwV3drUXRyS0YwWVdaYmVpN1RaYWVBQStUa0lCQ2JDZz09Cg==",
+      "url": "https://github.com/ganjarammar/audiosync-studio/releases/download/v1.0.9/PodLingo_1.0.9_x64-setup.exe"
+    }
+  },
+  "version": "1.0.9",
+  "pub_date": "2026-02-06T15:31:59.5268499Z"
+}

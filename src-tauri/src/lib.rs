@@ -10,7 +10,11 @@ pub fn run() {
     )
     .setup(|app| {
       #[cfg(desktop)]
-      app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
+      app.handle().plugin(
+        tauri_plugin_updater::Builder::new()
+          .pubkey("dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM5MjdFRjVDRjE4N0ZBNjUKUlVSbCtvZnhYTzhuT1pyV2d0OXFXOVN5UXhlS1dmNVdiTURBVU0rZGFtS0JLejdhZk1zTUtyTVMK")
+          .build()
+      )?;
       Ok(())
     })
     .run(tauri::generate_context!())
