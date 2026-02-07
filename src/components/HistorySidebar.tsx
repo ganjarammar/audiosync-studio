@@ -87,12 +87,12 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
 
   const filteredAndSortedProjects = useMemo(() => {
     let filtered = [...projects];
-    
+
     // Apply filter
     if (filterBy === "favorites") {
       filtered = filtered.filter((p) => p.isFavorite);
     }
-    
+
     // Apply sort
     return filtered.sort((a, b) => {
       // Favorites first option
@@ -101,12 +101,12 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
         if (!a.isFavorite && b.isFavorite) return 1;
         return (b.lastPlayedAt || b.createdAt) - (a.lastPlayedAt || a.createdAt);
       }
-      
+
       switch (sortBy) {
         case "name-desc":
-          return b.name.localeCompare(a.name);
+          return b.name.localeCompare(a.name, undefined, { numeric: true });
         case "name-asc":
-          return a.name.localeCompare(b.name);
+          return a.name.localeCompare(b.name, undefined, { numeric: true });
         case "date-desc":
           return (b.lastPlayedAt || b.createdAt) - (a.lastPlayedAt || a.createdAt);
         case "date-asc":
@@ -267,8 +267,8 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
                       size="icon"
                       className={cn(
                         "h-7 w-7",
-                        project.isFavorite 
-                          ? "text-amber-500 hover:bg-amber-500/20" 
+                        project.isFavorite
+                          ? "text-amber-500 hover:bg-amber-500/20"
                           : "text-muted-foreground hover:bg-muted"
                       )}
                       onClick={(e) => handleToggleFavorite(e, project.id)}
