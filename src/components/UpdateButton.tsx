@@ -26,11 +26,22 @@ export function UpdateButton() {
     try {
       setStatus("checking");
 
+      console.log("[Updater] Starting update check...");
+
       const { check } = await import("@tauri-apps/plugin-updater");
       const { ask, message } = await import("@tauri-apps/plugin-dialog");
       const { relaunch } = await import("@tauri-apps/plugin-process");
 
-      const update = await check();
+      console.log("[Updater] Plugins imported, calling check()...");
+
+      // Add timeout to prevent infinite spinning
+      const timeoutPromise = new Promise<null>((_, reject) => {
+        setTimeout(() => reject(new Error("Update check timed out after 30 seconds")), 30000);
+      });
+
+      const update = await Promise.race([check(), timeoutPromise]);
+
+      console.log("[Updater] check() returned:", update);
 
       if (update) {
         setStatus("available");
