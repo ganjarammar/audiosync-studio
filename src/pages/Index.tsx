@@ -59,7 +59,7 @@ const Index = () => {
   // Keyboard shortcuts
   const shortcuts = useMemo(
     () => [
-      { key: "h", callback: () => setHistoryOpen((prev) => !prev) },
+      { key: "p", callback: () => setHistoryOpen((prev) => !prev) },
       { key: "b", callback: () => setVocabOpen((prev) => !prev) },
       { key: "f", callback: () => setSearchOpen((prev) => !prev), enabled: isReady },
       { key: "d", callback: toggleTheme },

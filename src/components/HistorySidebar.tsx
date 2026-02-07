@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { History, Play, Trash2, Clock, Music, ArrowUpAZ, ArrowDownAZ, ArrowUp, ArrowDown, Star } from "lucide-react";
+import { ListMusic, Play, Trash2, Clock, Music, ArrowUpAZ, ArrowDownAZ, ArrowUp, ArrowDown, Star } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
   Sheet,
@@ -146,12 +146,12 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
           <SheetTrigger asChild>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                <History className="h-4 w-4" />
+                <ListMusic className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
           </SheetTrigger>
           <TooltipContent side="bottom">
-            <p className="text-xs">History ({getModifierKey()}H)</p>
+            <p className="text-xs">Playlist ({getModifierKey()}P)</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -159,8 +159,8 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
         <SheetHeader>
           <div className="flex items-center justify-between">
             <SheetTitle className="flex items-center gap-2">
-              <History className="h-5 w-5 text-primary" />
-              History
+              <ListMusic className="h-5 w-5 text-primary" />
+              Playlist
             </SheetTitle>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
