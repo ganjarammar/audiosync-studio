@@ -8,6 +8,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
+import { check } from "@tauri-apps/plugin-updater";
+import { ask, message } from "@tauri-apps/plugin-dialog";
+import { relaunch } from "@tauri-apps/plugin-process";
 
 type UpdateStatus = "idle" | "checking" | "available" | "downloading" | "ready" | "error";
 
@@ -27,12 +30,7 @@ export function UpdateButton() {
       setStatus("checking");
 
       console.log("[Updater] Starting update check...");
-
-      const { check } = await import("@tauri-apps/plugin-updater");
-      const { ask, message } = await import("@tauri-apps/plugin-dialog");
-      const { relaunch } = await import("@tauri-apps/plugin-process");
-
-      console.log("[Updater] Plugins imported, calling check()...");
+      console.log("[Updater] Calling check()...");
 
       // Add timeout to prevent infinite spinning
       const timeoutPromise = new Promise<null>((_, reject) => {
@@ -87,10 +85,7 @@ export function UpdateButton() {
     } catch (error) {
       console.error("Update check failed:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      await message(`Failed to check for updates: ${errorMessage}`, {
-        title: "Update Error",
-        kind: "error",
-      });
+      toast.error(`Failed to check for updates: ${errorMessage}`);
       setStatus("error");
 
       setTimeout(() => setStatus("idle"), 3000);
