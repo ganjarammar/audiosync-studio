@@ -1,7 +1,7 @@
 import { AudioFile, Script, Project, VocabularyWord, ProcessedScript } from "@/types/caption";
 
 const DB_NAME = "podcastCaptionSync";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let db: IDBDatabase | null = null;
 
@@ -34,6 +34,9 @@ export async function initDB(): Promise<IDBDatabase> {
       }
       if (!database.objectStoreNames.contains("processedScripts")) {
         database.createObjectStore("processedScripts", { keyPath: "scriptId" });
+      }
+      if (!database.objectStoreNames.contains("listeningStats")) {
+        database.createObjectStore("listeningStats", { keyPath: "audioName" });
       }
     };
   });
@@ -447,4 +450,35 @@ export async function getRandomProject(): Promise<Project | null> {
 
   const randomIndex = Math.floor(Math.random() * projects.length);
   return projects[randomIndex];
+}
+// Listening Stats functions
+export async function getListeningCount(audioName: string): Promise<number> {
+  const database = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(["listeningStats"], "readonly");
+    const store = transaction.objectStore("listeningStats");
+    const request = store.get(audioName);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const result = request.result;
+      resolve(result ? result.count : 0);
+    };
+  });
+}
+
+export async function incrementListeningCount(audioName: string): Promise<void> {
+  const database = await initDB();
+  const currentCount = await getListeningCount(audioName);
+
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(["listeningStats"], "readwrite");
+    const store = transaction.objectStore("listeningStats");
+    const request = store.put({
+      audioName,
+      count: currentCount + 1,
+      lastListenedAt: Date.now()
+    });
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve();
+  });
 }

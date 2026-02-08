@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { ListMusic, Play, Trash2, Clock, Music, ArrowUpAZ, ArrowDownAZ, ArrowUp, ArrowDown, Star, FolderOpen, CheckCircle2, AlertCircle } from "lucide-react";
+import { ListMusic, Play, Trash2, Clock, Music, ArrowUpAZ, ArrowDownAZ, ArrowUp, ArrowDown, Star, FolderOpen, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
   Sheet,
@@ -41,6 +41,7 @@ import { Progress } from "@/components/ui/progress";
 import { Project } from "@/types/caption";
 import { getModifierKey } from "@/hooks/useKeyboardShortcuts";
 import { cn } from "@/lib/utils";
+import { getListeningCount } from "@/lib/db";
 
 type SortOption = "name-desc" | "name-asc" | "date-desc" | "date-asc" | "favorites";
 type FilterOption = "all" | "favorites";
@@ -56,7 +57,7 @@ interface HistorySidebarProps {
 
 export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySidebarProps) {
   const { projects, isLoading: isHistoryLoading, refreshProjects, loadProject, removeProject, toggleFavorite } = useHistory();
-  const { loadFolder, isLoading: isFolderLoading, progress, stats, resetStats } = useFolderLoader(refreshProjects);
+  const { loadFolder, refreshFolder, isLoading: isFolderLoading, progress, stats, resetStats, lastFolderPath } = useFolderLoader(refreshProjects);
   const isLoading = isHistoryLoading || isFolderLoading;
 
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
@@ -68,12 +69,29 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
     const stored = localStorage.getItem(FILTER_STORAGE_KEY);
     return (stored as FilterOption) || "all";
   });
+  const [listeningCounts, setListeningCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (open) {
       refreshProjects();
     }
   }, [open, refreshProjects]);
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      const counts: Record<string, number> = {};
+      for (const project of projects) {
+        if (project.audioName) {
+          counts[project.audioName] = await getListeningCount(project.audioName);
+        }
+      }
+      setListeningCounts(counts);
+    };
+
+    if (open && projects.length > 0) {
+      fetchCounts();
+    }
+  }, [open, projects]);
 
   const handleSortChange = (option: SortOption) => {
     setSortBy(option);
@@ -160,7 +178,10 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
-      <SheetContent className="glass border-border/50 w-80">
+      <SheetContent
+        className="glass border-border/50 w-[400px] sm:w-[540px] flex flex-col"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <SheetHeader>
           <div className="flex items-center justify-between">
             <SheetTitle className="flex items-center gap-2">
@@ -181,6 +202,21 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Load folder</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    onClick={refreshFolder}
+                    disabled={isLoading || !lastFolderPath}
+                  >
+                    <RefreshCw className={cn("h-4 w-4", isFolderLoading && "animate-spin")} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Refresh last folder</TooltipContent>
               </Tooltip>
 
               <DropdownMenu>
@@ -271,13 +307,21 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
                           <Star className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />
                         )}
                       </div>
-                      <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        <span>
-                          {formatDistanceToNow(project.lastPlayedAt || project.createdAt, {
-                            addSuffix: true,
-                          })}
-                        </span>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          <span>
+                            {formatDistanceToNow(project.lastPlayedAt || project.createdAt, {
+                              addSuffix: true,
+                            })}
+                          </span>
+                        </div>
+                        {project.audioName && listeningCounts[project.audioName] > 0 && (
+                          <div className="flex items-center gap-1 text-primary/70">
+                            <CheckCircle2 className="h-3 w-3" />
+                            <span>Listened {listeningCounts[project.audioName]}x</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

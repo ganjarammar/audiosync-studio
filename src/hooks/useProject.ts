@@ -17,6 +17,7 @@ export function useProject() {
   const [isProcessed, setIsProcessed] = useState(false);
   const [pendingScriptContent, setPendingScriptContent] = useState<string | null>(null);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [currentAudioName, setCurrentAudioName] = useState<string | null>(null);
 
   const handleAudioUpload = useCallback(async (file: File) => {
     setIsLoading(true);
@@ -45,6 +46,7 @@ export function useProject() {
       setAudioUrl(url);
       setAudioFile(file);
       setAudioId(id);
+      setCurrentAudioName(file.name);
       setIsProcessed(false);
     } finally {
       setIsLoading(false);
@@ -108,6 +110,7 @@ export function useProject() {
         id: projectId,
         name: projectName,
         audioId: audioId,
+        audioName: audioFile.name,
         scriptId: id,
         createdAt: Date.now(),
         lastPlayedAt: Date.now(),
@@ -147,6 +150,7 @@ export function useProject() {
       setScriptFile(null);
       setPendingScriptContent(null);
       setCurrentProjectId(loaded.project.id);
+      setCurrentAudioName(loaded.audio.name);
       setIsProcessed(true);
 
       return {
@@ -173,5 +177,6 @@ export function useProject() {
     handleScriptUpload,
     processFiles,
     loadProject,
+    currentAudioName,
   };
 }

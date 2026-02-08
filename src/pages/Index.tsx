@@ -36,6 +36,7 @@ const Index = () => {
     handleScriptUpload,
     processFiles,
     loadProject,
+    currentAudioName,
   } = useProject();
 
   const [currentTime, setCurrentTime] = useState(0);
@@ -178,6 +179,7 @@ const Index = () => {
               <CaptionDisplay sentences={sentences} currentTime={currentTime} />
               <AudioPlayer
                 audioUrl={audioUrl}
+                audioName={currentAudioName || undefined}
                 onTimeUpdate={handleTimeUpdate}
                 onDurationChange={handleDurationChange}
                 autoPlay={shouldAutoPlay}

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { formatTimestamp } from "@/lib/captionParser";
 import { cn } from "@/lib/utils";
+import { incrementListeningCount } from "@/lib/db";
 import { AudioWaveform } from "./AudioWaveform";
 import {
   Tooltip,
@@ -14,6 +15,7 @@ import {
 
 interface AudioPlayerProps {
   audioUrl: string;
+  audioName?: string;
   onTimeUpdate: (time: number) => void;
   onDurationChange: (duration: number) => void;
   autoPlay?: boolean;
@@ -24,6 +26,7 @@ interface AudioPlayerProps {
 
 export function AudioPlayer({
   audioUrl,
+  audioName,
   onTimeUpdate,
   onDurationChange,
   autoPlay,
@@ -37,15 +40,52 @@ export function AudioPlayer({
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const hasIncrementedListen = useRef(false);
+  const lastAudioUrl = useRef(audioUrl);
+  const totalPlayedTime = useRef(0);
+  const lastTrackedTime = useRef(0);
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
+    // Reset listen flag when audio source changes
+    if (lastAudioUrl.current !== audioUrl) {
+      hasIncrementedListen.current = false;
+      totalPlayedTime.current = 0;
+      lastTrackedTime.current = audio.currentTime;
+      lastAudioUrl.current = audioUrl;
+    }
+
     const handleTimeUpdate = () => {
       const time = audio.currentTime;
       setCurrentTime(time);
       onTimeUpdate(time);
+
+      // Robust Listening Count (Accumulated Playback Time method)
+      const currentDuration = audio.duration;
+      if (!hasIncrementedListen.current && audioName && currentDuration > 0) {
+        const delta = time - lastTrackedTime.current;
+
+        // Only count actual playback (no skips or large jumps)
+        // Typically timeupdate fires 4-60 times per second, so delta should be small
+        if (delta > 0 && delta < 1.0) {
+          totalPlayedTime.current += delta;
+        }
+
+        lastTrackedTime.current = time;
+
+        // Trigger when accumulated playing time hits 90% of total duration
+        if (totalPlayedTime.current >= currentDuration * 0.9) {
+          hasIncrementedListen.current = true;
+          incrementListeningCount(audioName).catch((err) => {
+            console.error("Failed to increment listening count:", err);
+            hasIncrementedListen.current = false;
+          });
+        }
+      } else {
+        lastTrackedTime.current = time;
+      }
     };
 
     const handleDurationChange = () => {
@@ -73,7 +113,7 @@ export function AudioPlayer({
       audio.removeEventListener("pause", handlePause);
       audio.removeEventListener("ended", handleEnded);
     };
-  }, [onTimeUpdate, onDurationChange]);
+  }, [onTimeUpdate, onDurationChange, audioName, audioUrl]);
 
   // Auto-play effect when loading from history with play button
   useEffect(() => {

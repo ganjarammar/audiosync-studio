@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
 import { readDir, readFile, DirEntry } from '@tauri-apps/plugin-fs';
 import { saveAudio, saveScript, saveProject as saveProjectToDB, getAudioByName, getProjectByName } from "@/lib/db";
@@ -6,6 +6,8 @@ import { parseScript } from "@/lib/captionParser";
 import { processScriptForVocabulary } from "@/lib/vocabularyProcessor";
 import { AudioFile, Script, Project } from "@/types/caption";
 import { toast } from 'sonner';
+
+const LAST_FOLDER_KEY = "last-loaded-folder";
 
 interface LoadStats {
     total: number;
@@ -16,40 +18,30 @@ interface LoadStats {
 
 interface UseFolderLoaderReturn {
     loadFolder: () => Promise<void>;
+    refreshFolder: () => Promise<void>;
     isLoading: boolean;
     progress: { current: number; total: number; filename: string } | null;
     stats: LoadStats | null;
     resetStats: () => void;
+    lastFolderPath: string | null;
 }
 
 export function useFolderLoader(onProjectLoaded?: () => void): UseFolderLoaderReturn {
     const [isLoading, setIsLoading] = useState(false);
     const [progress, setProgress] = useState<{ current: number; total: number; filename: string } | null>(null);
     const [stats, setStats] = useState<LoadStats | null>(null);
+    const [lastFolderPath, setLastFolderPath] = useState<string | null>(() => localStorage.getItem(LAST_FOLDER_KEY));
 
     const resetStats = useCallback(() => {
         setStats(null);
         setProgress(null);
     }, []);
 
-    const loadFolder = useCallback(async () => {
+    const processDirectory = useCallback(async (dirPath: string) => {
         setIsLoading(true);
         resetStats();
 
         try {
-            const selected = await open({
-                directory: true,
-                multiple: false,
-            });
-
-            if (!selected) {
-                setIsLoading(false);
-                return;
-            }
-
-            // Convert to string if it's an array (though multiple: false should return string or null)
-            const dirPath = Array.isArray(selected) ? selected[0] : selected;
-
             const entries = await readDir(dirPath);
 
             const audioExtensions = ['.mp3', '.wav', '.m4a'];
@@ -87,39 +79,25 @@ export function useFolderLoader(onProjectLoaded?: () => void): UseFolderLoaderRe
                 setProgress({ current: i + 1, total, filename: audioEntry.name });
 
                 try {
-                    // Check for existing audio
                     const existingAudio = await getAudioByName(audioEntry.name);
                     if (existingAudio) {
                         skipped++;
                         continue;
                     }
 
-                    // Find matching script
-                    // Logic: 
-                    // 1. Exact base name match: "Audio.mp3" matches "Audio.srt"
-                    // 2. Suffix match: "Audio.mp3" matches "Audio - turboscribe.ai.srt"
-
                     const audioBaseName = audioEntry.name.substring(0, audioEntry.name.lastIndexOf('.'));
-
                     const scriptEntry = scripts.find(s => {
                         const scriptName = s.name;
-                        // Check exact match (ignoring extension)
                         if (scriptName.startsWith(audioBaseName + '.')) return true;
-
-                        // Check specific suffixes commonly used
                         if (scriptName.includes(audioBaseName) && scriptName.endsWith('.srt')) return true;
-
                         return false;
                     });
 
                     if (!scriptEntry) {
-                        // Can't process without script for now (based on app logic requiring both)
-                        console.warn(`No matching script found for ${audioEntry.name}`);
-                        skipped++; // Or treat as error? treating as skipped for now
+                        skipped++;
                         continue;
                     }
 
-                    // Check for existing project
                     const projectName = audioBaseName;
                     const existingProject = await getProjectByName(projectName);
                     if (existingProject) {
@@ -127,18 +105,15 @@ export function useFolderLoader(onProjectLoaded?: () => void): UseFolderLoaderRe
                         continue;
                     }
 
-                    // Read and process files
-                    const audioPath = `${dirPath}\\${audioEntry.name}`; // Windows path separator
+                    const audioPath = `${dirPath}\\${audioEntry.name}`;
                     const scriptPath = `${dirPath}\\${scriptEntry.name}`;
 
                     const audioBytes = await readFile(audioPath);
                     const scriptTextBytes = await readFile(scriptPath);
 
-                    // Decode script bytes to text
                     const scriptContent = new TextDecoder().decode(scriptTextBytes);
-                    const audioBlob = new Blob([audioBytes], { type: 'audio/mpeg' }); // simplified type
+                    const audioBlob = new Blob([audioBytes], { type: 'audio/mpeg' });
 
-                    // Create objects
                     const audioId = crypto.randomUUID();
                     const scriptId = crypto.randomUUID();
                     const projectId = crypto.randomUUID();
@@ -162,22 +137,19 @@ export function useFolderLoader(onProjectLoaded?: () => void): UseFolderLoaderRe
                         id: projectId,
                         name: projectName,
                         audioId,
+                        audioName: audioEntry.name,
                         scriptId,
                         createdAt: Date.now(),
                         lastPlayedAt: Date.now(),
                         isFavorite: false,
                     };
 
-                    // Save to DB
                     await saveAudio(audioFile);
                     await saveScript(script);
                     await saveProjectToDB(project);
-
-                    // Process Vocabulary
                     await processScriptForVocabulary(script);
 
                     processed++;
-
                 } catch (err) {
                     console.error(`Error processing ${audioEntry.name}:`, err);
                     errors++;
@@ -190,14 +162,43 @@ export function useFolderLoader(onProjectLoaded?: () => void): UseFolderLoaderRe
                 onProjectLoaded();
             }
 
+            // Save folder path on success
+            localStorage.setItem(LAST_FOLDER_KEY, dirPath);
+            setLastFolderPath(dirPath);
+
         } catch (error) {
-            console.error("Error loading folder:", error);
-            toast.error("Failed to load folder");
+            console.error("Error processing directory:", error);
+            toast.error("Failed to process folder");
         } finally {
             setIsLoading(false);
             setProgress(null);
         }
     }, [onProjectLoaded, resetStats]);
 
-    return { loadFolder, isLoading, progress, stats, resetStats };
+    const loadFolder = useCallback(async () => {
+        try {
+            const selected = await open({
+                directory: true,
+                multiple: false,
+            });
+
+            if (!selected) return;
+            const dirPath = Array.isArray(selected) ? selected[0] : selected;
+            await processDirectory(dirPath);
+        } catch (error) {
+            console.error("Error opening folder picker:", error);
+            toast.error("Failed to open folder");
+        }
+    }, [processDirectory]);
+
+    const refreshFolder = useCallback(async () => {
+        const path = localStorage.getItem(LAST_FOLDER_KEY);
+        if (!path) {
+            toast.error("No folder has been selected yet");
+            return;
+        }
+        await processDirectory(path);
+    }, [processDirectory]);
+
+    return { loadFolder, refreshFolder, isLoading, progress, stats, resetStats, lastFolderPath };
 }

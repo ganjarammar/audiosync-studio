@@ -27,9 +27,23 @@ export function useHistory() {
     setIsLoading(true);
     try {
       const allProjects = await getAllProjects();
+
+      // Backfill audioName if missing
+      const projectsWithNames = await Promise.all(allProjects.map(async (p) => {
+        if (!p.audioName) {
+          const audio = await getAudio(p.audioId);
+          if (audio) {
+            const updated = { ...p, audioName: audio.name };
+            await saveProject(updated);
+            return updated as Project;
+          }
+        }
+        return p;
+      }));
+
       // Sort by most recent first
-      allProjects.sort((a, b) => (b.lastPlayedAt || b.createdAt) - (a.lastPlayedAt || a.createdAt));
-      setProjects(allProjects);
+      projectsWithNames.sort((a, b) => (b.lastPlayedAt || b.createdAt) - (a.lastPlayedAt || a.createdAt));
+      setProjects(projectsWithNames);
     } finally {
       setIsLoading(false);
     }

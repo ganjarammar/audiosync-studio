@@ -29,6 +29,7 @@ export interface Project {
   id: string;
   name: string;
   audioId: string;
+  audioName: string;
   scriptId: string;
   createdAt: number;
   lastPlayedAt?: number;

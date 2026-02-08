@@ -56,9 +56,10 @@ export function QuickActionsBar({ onQuickLoad, currentProjectId }: QuickActionsB
 
         if (!audio || !script) return false;
 
-        // Update lastPlayedAt
+        // Update lastPlayedAt and ensure audioName is present
         const updatedProject: Project = {
           ...project,
+          audioName: project.audioName || audio.name,
           lastPlayedAt: Date.now(),
         };
         await saveProject(updatedProject);
