@@ -36,6 +36,7 @@ export interface Project {
   isFavorite?: boolean;
   lastPosition?: number;
   lastSentenceIndex?: number;
+  duration?: number;
 }
 
 export interface WordSource {

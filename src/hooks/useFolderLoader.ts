@@ -133,6 +133,22 @@ export function useFolderLoader(onProjectLoaded?: () => void): UseFolderLoaderRe
                         createdAt: Date.now(),
                     };
 
+                    const getAudioDuration = (blob: Blob): Promise<number> => {
+                        return new Promise((resolve) => {
+                            const url = URL.createObjectURL(blob);
+                            const tempAudio = new Audio(url);
+                            tempAudio.addEventListener('loadedmetadata', () => {
+                                const duration = tempAudio.duration;
+                                URL.revokeObjectURL(url);
+                                resolve(duration);
+                            });
+                            // Fallback if metadata fails to load within 2 seconds
+                            setTimeout(() => resolve(0), 2000);
+                        });
+                    };
+
+                    const duration = await getAudioDuration(audioBlob);
+
                     const project: Project = {
                         id: projectId,
                         name: projectName,
@@ -142,6 +158,7 @@ export function useFolderLoader(onProjectLoaded?: () => void): UseFolderLoaderRe
                         createdAt: Date.now(),
                         lastPlayedAt: Date.now(),
                         isFavorite: false,
+                        duration,
                     };
 
                     await saveAudio(audioFile);

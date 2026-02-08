@@ -152,6 +152,13 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
 
   const favoriteCount = useMemo(() => projects.filter((p) => p.isFavorite).length, [projects]);
 
+  const formatDuration = (seconds?: number) => {
+    if (seconds === undefined) return "--:--";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
   const handleLoad = async (project: Project, autoPlay = false) => {
     const loaded = await loadProject(project.id);
     if (loaded) {
@@ -341,11 +348,7 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
                       <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          <span>
-                            {formatDistanceToNow(project.lastPlayedAt || project.createdAt, {
-                              addSuffix: true,
-                            })}
-                          </span>
+                          <span>{formatDuration(project.duration)}</span>
                         </div>
                         {project.audioName && listeningCounts[project.audioName] > 0 && (
                           <div className="flex items-center gap-1 text-primary/70">

@@ -28,15 +28,42 @@ export function useHistory() {
     try {
       const allProjects = await getAllProjects();
 
-      // Backfill audioName if missing
+      // Backfill audioName or duration if missing
       const projectsWithNames = await Promise.all(allProjects.map(async (p) => {
+        let updated = false;
+        let projectToUpdate = { ...p };
+
         if (!p.audioName) {
           const audio = await getAudio(p.audioId);
           if (audio) {
-            const updated = { ...p, audioName: audio.name };
-            await saveProject(updated);
-            return updated as Project;
+            projectToUpdate.audioName = audio.name;
+            updated = true;
           }
+        }
+
+        if (p.duration === undefined) {
+          const audio = await getAudio(p.audioId);
+          if (audio) {
+            const getAudioDuration = (blob: Blob): Promise<number> => {
+              return new Promise((resolve) => {
+                const url = URL.createObjectURL(blob);
+                const tempAudio = new Audio(url);
+                tempAudio.addEventListener('loadedmetadata', () => {
+                  const duration = tempAudio.duration;
+                  URL.revokeObjectURL(url);
+                  resolve(duration);
+                });
+                setTimeout(() => resolve(0), 5000); // 5s timeout for backfill
+              });
+            };
+            projectToUpdate.duration = await getAudioDuration(audio.blob);
+            updated = true;
+          }
+        }
+
+        if (updated) {
+          await saveProject(projectToUpdate);
+          return projectToUpdate as Project;
         }
         return p;
       }));
