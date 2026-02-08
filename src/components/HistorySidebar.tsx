@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { ListMusic, Play, Trash2, Clock, Music, ArrowUpAZ, ArrowDownAZ, ArrowUp, ArrowDown, Star } from "lucide-react";
+import { ListMusic, Play, Trash2, Clock, Music, ArrowUpAZ, ArrowDownAZ, ArrowUp, ArrowDown, Star, FolderOpen, CheckCircle2, AlertCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
   Sheet,
@@ -36,6 +36,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useHistory, LoadedProject } from "@/hooks/useHistory.ts";
+import { useFolderLoader } from "@/hooks/useFolderLoader";
+import { Progress } from "@/components/ui/progress";
 import { Project } from "@/types/caption";
 import { getModifierKey } from "@/hooks/useKeyboardShortcuts";
 import { cn } from "@/lib/utils";
@@ -53,7 +55,10 @@ interface HistorySidebarProps {
 }
 
 export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySidebarProps) {
-  const { projects, isLoading, refreshProjects, loadProject, removeProject, toggleFavorite } = useHistory();
+  const { projects, isLoading: isHistoryLoading, refreshProjects, loadProject, removeProject, toggleFavorite } = useHistory();
+  const { loadFolder, isLoading: isFolderLoading, progress, stats, resetStats } = useFolderLoader(refreshProjects);
+  const isLoading = isHistoryLoading || isFolderLoading;
+
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>(() => {
     const stored = localStorage.getItem(SORT_STORAGE_KEY);
@@ -162,40 +167,57 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
               <ListMusic className="h-5 w-5 text-primary" />
               Playlist
             </SheetTitle>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                  {sortBy === "name-desc" && <ArrowDownAZ className="h-4 w-4" />}
-                  {sortBy === "name-asc" && <ArrowUpAZ className="h-4 w-4" />}
-                  {sortBy === "date-desc" && <ArrowDown className="h-4 w-4" />}
-                  {sortBy === "date-asc" && <ArrowUp className="h-4 w-4" />}
-                  {sortBy === "favorites" && <Star className="h-4 w-4" />}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleSortChange("favorites")} className={sortBy === "favorites" ? "bg-accent" : ""}>
-                  <Star className="h-4 w-4 mr-2" />
-                  Favorites first
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleSortChange("name-desc")} className={sortBy === "name-desc" ? "bg-accent" : ""}>
-                  <ArrowDownAZ className="h-4 w-4 mr-2" />
-                  Name (Z → A)
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleSortChange("name-asc")} className={sortBy === "name-asc" ? "bg-accent" : ""}>
-                  <ArrowUpAZ className="h-4 w-4 mr-2" />
-                  Name (A → Z)
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleSortChange("date-desc")} className={sortBy === "date-desc" ? "bg-accent" : ""}>
-                  <ArrowDown className="h-4 w-4 mr-2" />
-                  Newest first
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleSortChange("date-asc")} className={sortBy === "date-asc" ? "bg-accent" : ""}>
-                  <ArrowUp className="h-4 w-4 mr-2" />
-                  Oldest first
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    onClick={loadFolder}
+                    disabled={isLoading}
+                  >
+                    <FolderOpen className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Load folder</TooltipContent>
+              </Tooltip>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                    {sortBy === "name-desc" && <ArrowDownAZ className="h-4 w-4" />}
+                    {sortBy === "name-asc" && <ArrowUpAZ className="h-4 w-4" />}
+                    {sortBy === "date-desc" && <ArrowDown className="h-4 w-4" />}
+                    {sortBy === "date-asc" && <ArrowUp className="h-4 w-4" />}
+                    {sortBy === "favorites" && <Star className="h-4 w-4" />}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleSortChange("favorites")} className={sortBy === "favorites" ? "bg-accent" : ""}>
+                    <Star className="h-4 w-4 mr-2" />
+                    Favorites first
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleSortChange("name-desc")} className={sortBy === "name-desc" ? "bg-accent" : ""}>
+                    <ArrowDownAZ className="h-4 w-4 mr-2" />
+                    Name (Z → A)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleSortChange("name-asc")} className={sortBy === "name-asc" ? "bg-accent" : ""}>
+                    <ArrowUpAZ className="h-4 w-4 mr-2" />
+                    Name (A → Z)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleSortChange("date-desc")} className={sortBy === "date-desc" ? "bg-accent" : ""}>
+                    <ArrowDown className="h-4 w-4 mr-2" />
+                    Newest first
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleSortChange("date-asc")} className={sortBy === "date-asc" ? "bg-accent" : ""}>
+                    <ArrowUp className="h-4 w-4 mr-2" />
+                    Oldest first
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
           <SheetDescription>
             Your saved projects. Click to load.
@@ -318,6 +340,54 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
                 Delete
               </AlertDialogAction>
             </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <AlertDialog open={isFolderLoading || !!stats} onOpenChange={(open) => !open && resetStats()}>
+          <AlertDialogContent className="glass border-border/50">
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {isFolderLoading ? "Importing Files..." : "Import Complete"}
+              </AlertDialogTitle>
+              <div className="py-4">
+                {isFolderLoading ? (
+                  <div className="space-y-4">
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>Processing files...</span>
+                      <span>{progress ? Math.round((progress.current / progress.total) * 100) : 0}%</span>
+                    </div>
+                    <Progress value={progress ? (progress.current / progress.total) * 100 : 0} />
+                    <p className="text-xs text-muted-foreground truncate">
+                      Current file: {progress?.filename || "..."}
+                    </p>
+                  </div>
+                ) : stats ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-primary/10 p-3 rounded-lg text-center">
+                        <CheckCircle2 className="h-5 w-5 text-primary mx-auto mb-1" />
+                        <div className="text-2xl font-bold">{stats.processed}</div>
+                        <div className="text-xs text-muted-foreground">Imported</div>
+                      </div>
+                      <div className="bg-muted p-3 rounded-lg text-center">
+                        <AlertCircle className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
+                        <div className="text-2xl font-bold">{stats.skipped}</div>
+                        <div className="text-xs text-muted-foreground">Skipped (Duplicate)</div>
+                      </div>
+                    </div>
+                    {stats.errors > 0 && (
+                      <p className="text-sm text-destructive text-center">
+                        {stats.errors} files failed to import.
+                      </p>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            </AlertDialogHeader>
+            {!isFolderLoading && (
+              <AlertDialogFooter>
+                <AlertDialogAction onClick={resetStats}>Done</AlertDialogAction>
+              </AlertDialogFooter>
+            )}
           </AlertDialogContent>
         </AlertDialog>
       </SheetContent>

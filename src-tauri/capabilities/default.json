@@ -10,6 +10,26 @@
     "updater:default",
     "process:default",
     "dialog:default",
+    "fs:default",
+    {
+      "identifier": "fs:allow-read-dir",
+      "options": {
+        "recursive": true
+      },
+      "allow": [
+        {
+          "path": "**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-read-file",
+      "allow": [
+        {
+          "path": "**"
+        }
+      ]
+    },
     "core:window:allow-set-title"
   ]
 }
