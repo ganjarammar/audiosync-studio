@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { ListMusic, Play, Trash2, Clock, Music, ArrowUpAZ, ArrowDownAZ, ArrowUp, ArrowDown, Star, FolderOpen, RefreshCw, CheckCircle2, AlertCircle, Search, X } from "lucide-react";
+import { ListMusic, Play, Trash2, Clock, Music, ArrowUpAZ, ArrowDownAZ, ArrowUp, ArrowDown, Star, FolderOpen, RefreshCw, CheckCircle2, AlertCircle, Search, X, ArrowDownWideNarrow, ArrowUpNarrowWide } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
   Sheet,
@@ -44,7 +44,7 @@ import { getModifierKey } from "@/hooks/useKeyboardShortcuts";
 import { cn } from "@/lib/utils";
 import { getListeningCount } from "@/lib/db";
 
-type SortOption = "name-desc" | "name-asc" | "date-desc" | "date-asc" | "favorites";
+type SortOption = "name-desc" | "name-asc" | "date-desc" | "date-asc" | "favorites" | "duration-desc" | "duration-asc";
 type FilterOption = "all" | "favorites";
 
 const SORT_STORAGE_KEY = "history-sort";
@@ -144,6 +144,10 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
           return (b.lastPlayedAt || b.createdAt) - (a.lastPlayedAt || a.createdAt);
         case "date-asc":
           return (a.lastPlayedAt || a.createdAt) - (b.lastPlayedAt || b.createdAt);
+        case "duration-desc":
+          return (b.duration || 0) - (a.duration || 0);
+        case "duration-asc":
+          return (a.duration || 0) - (b.duration || 0);
         default:
           return 0;
       }
@@ -244,6 +248,8 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
                     {sortBy === "date-desc" && <ArrowDown className="h-4 w-4" />}
                     {sortBy === "date-asc" && <ArrowUp className="h-4 w-4" />}
                     {sortBy === "favorites" && <Star className="h-4 w-4" />}
+                    {sortBy === "duration-desc" && <ArrowDownWideNarrow className="h-4 w-4" />}
+                    {sortBy === "duration-asc" && <ArrowUpNarrowWide className="h-4 w-4" />}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -267,6 +273,15 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
                   <DropdownMenuItem onClick={() => handleSortChange("date-asc")} className={sortBy === "date-asc" ? "bg-accent" : ""}>
                     <ArrowUp className="h-4 w-4 mr-2" />
                     Oldest first
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleSortChange("duration-desc")} className={sortBy === "duration-desc" ? "bg-accent" : ""}>
+                    <ArrowDownWideNarrow className="h-4 w-4 mr-2" />
+                    Longest first
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleSortChange("duration-asc")} className={sortBy === "duration-asc" ? "bg-accent" : ""}>
+                    <ArrowUpNarrowWide className="h-4 w-4 mr-2" />
+                    Shortest first
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
