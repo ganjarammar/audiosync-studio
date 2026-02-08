@@ -5,6 +5,12 @@ import { Slider } from "@/components/ui/slider";
 import { formatTimestamp } from "@/lib/captionParser";
 import { cn } from "@/lib/utils";
 import { AudioWaveform } from "./AudioWaveform";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface AudioPlayerProps {
   audioUrl: string;
@@ -96,16 +102,16 @@ export function AudioPlayer({
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || seekTo === null || seekTo === undefined) return;
-    
+
     audio.currentTime = seekTo;
     setCurrentTime(seekTo);
     onTimeUpdate(seekTo);
-    
+
     // Auto-play after seeking
     if (audio.paused) {
-      audio.play().catch(() => {});
+      audio.play().catch(() => { });
     }
-    
+
     onSeekComplete?.();
   }, [seekTo, onTimeUpdate, onSeekComplete]);
 
@@ -142,14 +148,14 @@ export function AudioPlayer({
   }, [duration]);
 
   return (
-    <div 
+    <div
       className="glass rounded-2xl p-4 transition-all duration-300 relative overflow-hidden"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Waveform visualizer background */}
       <AudioWaveform audioRef={audioRef} isPlaying={isPlaying} />
-      
+
       <audio ref={audioRef} src={audioUrl} preload="metadata" />
 
       {/* Progress bar */}
@@ -169,64 +175,94 @@ export function AudioPlayer({
 
       {/* Controls */}
       <div className="flex items-center justify-center gap-2 relative z-10">
-        {/* Skip back - show on hover */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => skip(-10)}
-          className={cn(
-            "h-9 w-9 rounded-full transition-all duration-200",
-            isHovered ? "opacity-100" : "opacity-0 pointer-events-none"
-          )}
-        >
-          <SkipBack className="h-4 w-4" />
-        </Button>
+        <TooltipProvider>
+          {/* Skip back - show on hover */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => skip(-10)}
+                className={cn(
+                  "h-9 w-9 rounded-full transition-all duration-200 hover:bg-primary/20 hover:text-primary",
+                  isHovered ? "opacity-100" : "opacity-0 pointer-events-none"
+                )}
+              >
+                <SkipBack className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p className="text-xs">Skip back 10s</p>
+            </TooltipContent>
+          </Tooltip>
 
-        {/* Main play button */}
-        <Button
-          onClick={togglePlay}
-          size="icon"
-          className={cn(
-            "h-12 w-12 rounded-full transition-all duration-200",
-            "gradient-primary glow-box hover:scale-105"
-          )}
-        >
-          {isPlaying ? (
-            <Pause className="h-5 w-5 text-primary-foreground" />
-          ) : (
-            <Play className="h-5 w-5 translate-x-0.5 text-primary-foreground" />
-          )}
-        </Button>
+          {/* Main play button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={togglePlay}
+                size="icon"
+                className={cn(
+                  "h-12 w-12 rounded-full transition-all duration-200",
+                  "gradient-primary glow-box hover:scale-105"
+                )}
+              >
+                {isPlaying ? (
+                  <Pause className="h-5 w-5 text-primary-foreground" />
+                ) : (
+                  <Play className="h-5 w-5 translate-x-0.5 text-primary-foreground" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p className="text-xs">{isPlaying ? "Pause" : "Play"}</p>
+            </TooltipContent>
+          </Tooltip>
 
-        {/* Skip forward - show on hover */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => skip(10)}
-          className={cn(
-            "h-9 w-9 rounded-full transition-all duration-200",
-            isHovered ? "opacity-100" : "opacity-0 pointer-events-none"
-          )}
-        >
-          <SkipForward className="h-4 w-4" />
-        </Button>
+          {/* Skip forward - show on hover */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => skip(10)}
+                className={cn(
+                  "h-9 w-9 rounded-full transition-all duration-200 hover:bg-primary/20 hover:text-primary",
+                  isHovered ? "opacity-100" : "opacity-0 pointer-events-none"
+                )}
+              >
+                <SkipForward className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p className="text-xs">Skip forward 10s</p>
+            </TooltipContent>
+          </Tooltip>
 
-        {/* Mute toggle - show on hover */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleMute}
-          className={cn(
-            "h-9 w-9 rounded-full transition-all duration-200 ml-4",
-            isHovered ? "opacity-100" : "opacity-0 pointer-events-none"
-          )}
-        >
-          {isMuted ? (
-            <VolumeX className="h-4 w-4" />
-          ) : (
-            <Volume2 className="h-4 w-4" />
-          )}
-        </Button>
+          {/* Mute toggle - show on hover */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleMute}
+                className={cn(
+                  "h-9 w-9 rounded-full transition-all duration-200 ml-4 hover:bg-primary/20 hover:text-primary",
+                  isHovered ? "opacity-100" : "opacity-0 pointer-events-none"
+                )}
+              >
+                {isMuted ? (
+                  <VolumeX className="h-4 w-4" />
+                ) : (
+                  <Volume2 className="h-4 w-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p className="text-xs">{isMuted ? "Unmute" : "Mute"}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
   );
