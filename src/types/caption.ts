@@ -16,6 +16,7 @@ export interface Script {
   name: string;
   sentences: Sentence[];
   createdAt: number;
+  fileSizeBytes?: number;
 }
 
 export interface AudioFile {

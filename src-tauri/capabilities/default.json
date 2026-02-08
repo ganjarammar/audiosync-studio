@@ -10,21 +10,11 @@
     "updater:default",
     "process:default",
     "dialog:default",
-    "dialog:allow-open",
+    "fs:allow-open",
     "fs:default",
+    "fs:read-all",
     {
-      "identifier": "fs:allow-read-dir",
-      "options": {
-        "recursive": true
-      },
-      "allow": [
-        {
-          "path": "**"
-        }
-      ]
-    },
-    {
-      "identifier": "fs:allow-read-file",
+      "identifier": "fs:scope",
       "allow": [
         {
           "path": "**"

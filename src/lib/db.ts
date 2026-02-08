@@ -216,6 +216,20 @@ export async function getProjectByName(name: string): Promise<Project | undefine
   });
 }
 
+export async function getProjectByAudioName(audioName: string): Promise<Project | undefined> {
+  const database = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(["projects"], "readonly");
+    const store = transaction.objectStore("projects");
+    const request = store.getAll();
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const allProjects = request.result as Project[];
+      resolve(allProjects.find(p => p.audioName === audioName));
+    };
+  });
+}
+
 // Vocabulary functions
 export async function getVocabularyWord(word: string): Promise<VocabularyWord | undefined> {
   const database = await initDB();

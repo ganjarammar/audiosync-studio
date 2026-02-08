@@ -494,16 +494,21 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
                   </div>
                 ) : stats ? (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-primary/10 p-3 rounded-lg text-center">
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-primary/10 p-2.5 rounded-lg text-center">
                         <CheckCircle2 className="h-5 w-5 text-primary mx-auto mb-1" />
-                        <div className="text-2xl font-bold">{stats.processed}</div>
-                        <div className="text-xs text-muted-foreground">Imported</div>
+                        <div className="text-xl font-bold">{stats.processed}</div>
+                        <div className="text-[10px] text-muted-foreground uppercase font-semibold">New</div>
                       </div>
-                      <div className="bg-muted p-3 rounded-lg text-center">
+                      <div className="bg-blue-500/10 p-2.5 rounded-lg text-center">
+                        <Activity className="h-5 w-5 text-blue-500 mx-auto mb-1" />
+                        <div className="text-xl font-bold">{stats.updated}</div>
+                        <div className="text-[10px] text-muted-foreground uppercase font-semibold">Updated</div>
+                      </div>
+                      <div className="bg-muted p-2.5 rounded-lg text-center">
                         <AlertCircle className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
-                        <div className="text-2xl font-bold">{stats.skipped}</div>
-                        <div className="text-xs text-muted-foreground">Skipped (Duplicate)</div>
+                        <div className="text-xl font-bold">{stats.skipped}</div>
+                        <div className="text-[10px] text-muted-foreground uppercase font-semibold">Skipped</div>
                       </div>
                     </div>
                     {stats.errors > 0 && (

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
-import { readDir, readFile, DirEntry } from '@tauri-apps/plugin-fs';
-import { saveAudio, saveScript, saveProject as saveProjectToDB, getAudioByName, getProjectByName } from "@/lib/db";
+import { readDir, readFile, DirEntry, stat } from '@tauri-apps/plugin-fs';
+import { saveAudio, saveScript, saveProject as saveProjectToDB, getAudioByName, getProjectByName, getScript, deleteVocabularyBySource, getProjectByAudioName } from "@/lib/db";
 import { parseScript } from "@/lib/captionParser";
 import { processScriptForVocabulary } from "@/lib/vocabularyProcessor";
 import { AudioFile, Script, Project } from "@/types/caption";
@@ -12,6 +12,7 @@ const LAST_FOLDER_KEY = "last-loaded-folder";
 interface LoadStats {
     total: number;
     processed: number;
+    updated: number;
     skipped: number;
     errors: number;
 }
@@ -71,6 +72,7 @@ export function useFolderLoader(onProjectLoaded?: () => void): UseFolderLoaderRe
             // Process batch
             let skipped = 0;
             let processed = 0;
+            let updated = 0;
             let errors = 0;
             const total = audios.length;
 
@@ -79,12 +81,6 @@ export function useFolderLoader(onProjectLoaded?: () => void): UseFolderLoaderRe
                 setProgress({ current: i + 1, total, filename: audioEntry.name });
 
                 try {
-                    const existingAudio = await getAudioByName(audioEntry.name);
-                    if (existingAudio) {
-                        skipped++;
-                        continue;
-                    }
-
                     const audioBaseName = audioEntry.name.substring(0, audioEntry.name.lastIndexOf('.'));
                     const scriptEntry = scripts.find(s => {
                         const scriptName = s.name;
@@ -98,15 +94,55 @@ export function useFolderLoader(onProjectLoaded?: () => void): UseFolderLoaderRe
                         continue;
                     }
 
-                    const projectName = audioBaseName;
-                    const existingProject = await getProjectByName(projectName);
-                    if (existingProject) {
+                    const scriptPath = `${dirPath}\\${scriptEntry.name}`;
+                    const scriptStat = await stat(scriptPath);
+                    const currentScriptSizeBytes = scriptStat.size;
+
+                    const existingAudio = await getAudioByName(audioEntry.name);
+                    const existingProject = await getProjectByAudioName(audioEntry.name);
+
+                    console.log(`[FolderLoader] Checking: ${audioEntry.name}`);
+                    console.log(`[FolderLoader] Audio found: ${!!existingAudio}, Project found: ${!!existingProject}`);
+
+                    if (existingAudio && existingProject) {
+                        const existingScript = await getScript(existingProject.scriptId);
+                        console.log(`[FolderLoader] Script found: ${!!existingScript}, scriptId: ${existingProject.scriptId}`);
+                        if (existingScript) {
+                            console.log(`[FolderLoader] Size in DB: ${existingScript.fileSizeBytes}, Size on Disk: ${currentScriptSizeBytes}`);
+                        }
+
+                        // Check if script size changed
+                        if (existingScript && (existingScript.fileSizeBytes !== currentScriptSizeBytes)) {
+                            console.log(`[FolderLoader] DETECTED CHANGE for ${audioEntry.name}`);
+                            // SCRIPT CHANGED - RELOAD IT
+                            const scriptTextBytes = await readFile(scriptPath);
+                            const scriptContent = new TextDecoder().decode(scriptTextBytes);
+                            const parsedScript = parseScript(scriptContent);
+
+                            // 1. Delete old vocabulary entries for this script
+                            await deleteVocabularyBySource(existingScript.id);
+
+                            // 2. Update script in DB
+                            const updatedScript: Script = {
+                                ...existingScript,
+                                sentences: parsedScript,
+                                createdAt: Date.now(), // Update timestamp
+                                fileSizeBytes: currentScriptSizeBytes
+                            };
+                            await saveScript(updatedScript);
+
+                            // 3. Re-process vocabulary
+                            await processScriptForVocabulary(updatedScript);
+
+                            updated++;
+                            continue;
+                        }
+
                         skipped++;
                         continue;
                     }
 
                     const audioPath = `${dirPath}\\${audioEntry.name}`;
-                    const scriptPath = `${dirPath}\\${scriptEntry.name}`;
 
                     const audioBytes = await readFile(audioPath);
                     const scriptTextBytes = await readFile(scriptPath);
@@ -131,6 +167,7 @@ export function useFolderLoader(onProjectLoaded?: () => void): UseFolderLoaderRe
                         name: scriptEntry.name,
                         sentences: parsedScript,
                         createdAt: Date.now(),
+                        fileSizeBytes: currentScriptSizeBytes
                     };
 
                     const getAudioDuration = (blob: Blob): Promise<number> => {
@@ -151,7 +188,7 @@ export function useFolderLoader(onProjectLoaded?: () => void): UseFolderLoaderRe
 
                     const project: Project = {
                         id: projectId,
-                        name: projectName,
+                        name: audioBaseName,
                         audioId,
                         audioName: audioEntry.name,
                         scriptId,
@@ -173,9 +210,9 @@ export function useFolderLoader(onProjectLoaded?: () => void): UseFolderLoaderRe
                 }
             }
 
-            setStats({ total, processed, skipped, errors });
+            setStats({ total, processed, updated, skipped, errors });
 
-            if (processed > 0 && onProjectLoaded) {
+            if ((processed > 0 || updated > 0) && onProjectLoaded) {
                 onProjectLoaded();
             }
 
