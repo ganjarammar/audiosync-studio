@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { saveAudio, saveScript, saveProject as saveProjectToDB, getAudioByName, getProjectByName } from "@/lib/db";
+import { saveAudio, saveScript, saveProject as saveProjectToDB, getAudioByName, getProjectByName, getScriptByName } from "@/lib/db";
 import { parseScript } from "@/lib/captionParser";
 import { processScriptForVocabulary } from "@/lib/vocabularyProcessor";
 import { Sentence, AudioFile, Script, Project } from "@/types/caption";
@@ -54,6 +54,16 @@ export function useProject() {
   const handleScriptUpload = useCallback(async (file: File) => {
     setIsLoading(true);
     try {
+      // Check for duplicate script
+      const existingScript = await getScriptByName(file.name);
+      if (existingScript) {
+        toast.info("Script already uploaded", {
+          description: `"${file.name}" is already available in your library.`,
+        });
+        setIsLoading(false);
+        return;
+      }
+
       const content = await file.text();
       setPendingScriptContent(content);
       setScriptFile(file);

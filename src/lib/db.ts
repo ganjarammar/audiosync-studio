@@ -105,6 +105,20 @@ export async function getAllScripts(): Promise<Script[]> {
   });
 }
 
+export async function getScriptByName(name: string): Promise<Script | undefined> {
+  const database = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(["scripts"], "readonly");
+    const store = transaction.objectStore("scripts");
+    const request = store.getAll();
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const allScripts = request.result as Script[];
+      resolve(allScripts.find(s => s.name === name));
+    };
+  });
+}
+
 export async function saveProject(project: Project): Promise<void> {
   const database = await initDB();
   return new Promise((resolve, reject) => {
