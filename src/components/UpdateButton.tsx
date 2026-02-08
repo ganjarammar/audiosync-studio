@@ -162,7 +162,7 @@ export function UpdateButton() {
             size="icon"
             onClick={checkForUpdates}
             disabled={status !== "idle" && status !== "error"}
-            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors"
           >
             {getIcon()}
           </Button>

@@ -145,7 +145,7 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
         <Tooltip>
           <SheetTrigger asChild>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors">
                 <ListMusic className="h-4 w-4" />
               </Button>
             </TooltipTrigger>

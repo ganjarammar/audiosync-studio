@@ -56,7 +56,7 @@ export function ThemeToggle({ onToggle }: ThemeToggleProps) {
             variant="ghost"
             size="icon"
             onClick={toggle}
-            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors"
           >
             {isDark ? (
               <Sun className="h-4 w-4" />

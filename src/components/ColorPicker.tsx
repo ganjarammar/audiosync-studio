@@ -7,6 +7,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ColorOption {
   name: string;
@@ -60,41 +66,50 @@ export function ColorPicker() {
   const currentColor = colorOptions.find((c) => c.name === selectedColor);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative h-9 w-9 rounded-full hover:bg-muted"
-        >
-          <Palette className="h-4 w-4 text-foreground" />
-          <span
-            className="absolute bottom-1 right-1 h-2 w-2 rounded-full ring-1 ring-background"
-            style={{ backgroundColor: currentColor?.preview }}
-          />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-48 p-3" align="end">
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground">
-            Theme Color
-          </p>
-          <div className="grid grid-cols-4 gap-2">
-            {colorOptions.map((color) => (
-              <button
-                key={color.name}
-                onClick={() => applyColor(color)}
-                className={cn(
-                  "h-8 w-8 rounded-full transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background",
-                  selectedColor === color.name && "ring-2 ring-foreground scale-110"
-                )}
-                style={{ backgroundColor: color.preview }}
-                title={color.name}
-              />
-            ))}
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
+    <TooltipProvider>
+      <Tooltip>
+        <Popover open={open} onOpenChange={setOpen}>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-9 w-9 rounded-full hover:bg-primary/20 hover:text-primary transition-colors"
+              >
+                <Palette className="h-4 w-4" />
+                <span
+                  className="absolute bottom-1 right-1 h-2 w-2 rounded-full ring-1 ring-background"
+                  style={{ backgroundColor: currentColor?.preview }}
+                />
+              </Button>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <PopoverContent className="w-48 p-3" align="end">
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">
+                Theme Color
+              </p>
+              <div className="grid grid-cols-4 gap-2">
+                {colorOptions.map((color) => (
+                  <button
+                    key={color.name}
+                    onClick={() => applyColor(color)}
+                    className={cn(
+                      "h-8 w-8 rounded-full transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background",
+                      selectedColor === color.name && "ring-2 ring-foreground scale-110"
+                    )}
+                    style={{ backgroundColor: color.preview }}
+                    title={color.name}
+                  />
+                ))}
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+        <TooltipContent side="bottom">
+          <p className="text-xs">Theme color</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

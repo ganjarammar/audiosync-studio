@@ -96,7 +96,7 @@ export function ScriptSearch({ sentences, onSeekTo, currentTime, open, onOpenCha
 
   const navigateResults = useCallback((direction: "up" | "down") => {
     if (results.length === 0) return;
-    
+
     setSelectedIndex(prev => {
       if (direction === "down") {
         return prev < results.length - 1 ? prev + 1 : 0;
@@ -126,7 +126,7 @@ export function ScriptSearch({ sentences, onSeekTo, currentTime, open, onOpenCha
     const words = result.sentence.words;
     const start = Math.max(0, result.wordIndex - 2);
     const end = Math.min(words.length, result.wordIndex + 3);
-    
+
     return words.slice(start, end).map((w, i) => ({
       text: w.text,
       isMatch: start + i === result.wordIndex,
@@ -142,7 +142,7 @@ export function ScriptSearch({ sentences, onSeekTo, currentTime, open, onOpenCha
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors"
               >
                 <Search className="h-4 w-4" />
               </Button>
@@ -153,8 +153,8 @@ export function ScriptSearch({ sentences, onSeekTo, currentTime, open, onOpenCha
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
-      <PopoverContent 
-        className="w-[360px] p-0" 
+      <PopoverContent
+        className="w-[360px] p-0"
         align="end"
         onKeyDown={handleKeyDown}
       >
@@ -188,7 +188,7 @@ export function ScriptSearch({ sentences, onSeekTo, currentTime, open, onOpenCha
                 No matches found
               </p>
             )}
-            
+
             {query.length < 2 && query.length > 0 && (
               <p className="text-sm text-muted-foreground text-center py-6">
                 Type at least 2 characters
@@ -223,8 +223,8 @@ export function ScriptSearch({ sentences, onSeekTo, currentTime, open, onOpenCha
 
                 {results.map((result, idx) => {
                   const context = getWordContext(result);
-                  const isActive = result.word.startTime <= currentTime && 
-                                   result.word.endTime >= currentTime;
+                  const isActive = result.word.startTime <= currentTime &&
+                    result.word.endTime >= currentTime;
 
                   return (
                     <button

@@ -125,7 +125,7 @@ export function VocabularyLibrary({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors"
               >
                 <Book className="h-4 w-4" />
               </Button>
@@ -222,7 +222,7 @@ export function VocabularyLibrary({
               {words.map((word) => (
                 <WordCard key={word.word} word={word} onClick={() => handleWordClick(word)} />
               ))}
-              
+
               {/* Load More Button */}
               {hasMore && !searchQuery && (
                 <Button
