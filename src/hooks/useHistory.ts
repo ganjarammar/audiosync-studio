@@ -9,6 +9,7 @@ import {
   deleteScript,
   saveProject,
   toggleProjectFavorite,
+  deleteVocabularyBySource,
 } from "@/lib/db";
 import { Project, AudioFile, Script } from "@/types/caption";
 
@@ -78,6 +79,7 @@ export function useHistory() {
         await deleteAudio(project.audioId);
       }
       if (!scriptUsedElsewhere) {
+        await deleteVocabularyBySource(project.scriptId);
         await deleteScript(project.scriptId);
       }
 

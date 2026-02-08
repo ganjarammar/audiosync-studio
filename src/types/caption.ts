@@ -40,6 +40,7 @@ export interface Project {
 export interface WordSource {
   scriptId: string;
   fileName: string;
+  count: number;
 }
 
 export interface VocabularyWord {

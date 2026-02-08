@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { saveAudio, saveScript, saveProject as saveProjectToDB } from "@/lib/db";
+import { saveAudio, saveScript, saveProject as saveProjectToDB, getAudioByName, getProjectByName } from "@/lib/db";
 import { parseScript } from "@/lib/captionParser";
 import { processScriptForVocabulary } from "@/lib/vocabularyProcessor";
 import { Sentence, AudioFile, Script, Project } from "@/types/caption";
@@ -21,6 +21,16 @@ export function useProject() {
   const handleAudioUpload = useCallback(async (file: File) => {
     setIsLoading(true);
     try {
+      // Check for duplicate audio
+      const existingAudio = await getAudioByName(file.name);
+      if (existingAudio) {
+        toast.info("Audio already in playlist", {
+          description: `"${file.name}" is already available in your playlist.`,
+        });
+        setIsLoading(false);
+        return;
+      }
+
       const id = crypto.randomUUID();
       const audioData: AudioFile = {
         id,
@@ -73,6 +83,17 @@ export function useProject() {
       // Create and save project
       const projectId = crypto.randomUUID();
       const projectName = audioFile.name.replace(/\.[^/.]+$/, ""); // Remove extension
+
+      // Check for duplicate project
+      const existingProject = await getProjectByName(projectName);
+      if (existingProject) {
+        toast.info("Project already exists", {
+          description: `A project with the name "${projectName}" is already in your playlist.`,
+        });
+        setIsLoading(false);
+        return;
+      }
+
       const project: Project = {
         id: projectId,
         name: projectName,
@@ -107,7 +128,7 @@ export function useProject() {
     try {
       // Create object URL from blob
       const url = URL.createObjectURL(loaded.audio.blob);
-      
+
       setAudioUrl(url);
       setAudioFile(null); // No File object when loading from history
       setAudioId(loaded.audio.id);
@@ -117,7 +138,7 @@ export function useProject() {
       setPendingScriptContent(null);
       setCurrentProjectId(loaded.project.id);
       setIsProcessed(true);
-      
+
       return {
         lastPosition: loaded.project.lastPosition,
         lastSentenceIndex: loaded.project.lastSentenceIndex,

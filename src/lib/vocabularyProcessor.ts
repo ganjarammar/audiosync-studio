@@ -56,13 +56,17 @@ export async function processScriptForVocabulary(
   }
 
   const wordCounts = extractWordsFromScript(script);
-  const source: WordSource = { scriptId: script.id, fileName: script.name };
 
   let newWords = 0;
   let updatedWords = 0;
 
   for (const [word, count] of wordCounts) {
     const existing = await getVocabularyWord(word);
+    const source: WordSource = {
+      scriptId: script.id,
+      fileName: script.name,
+      count: count
+    };
 
     if (existing) {
       // Update existing word - increment count and add source

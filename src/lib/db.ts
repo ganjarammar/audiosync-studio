@@ -138,6 +138,20 @@ export async function deleteAudio(id: string): Promise<void> {
   });
 }
 
+export async function getAudioByName(name: string): Promise<AudioFile | undefined> {
+  const database = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(["audio"], "readonly");
+    const store = transaction.objectStore("audio");
+    const request = store.getAll();
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const allAudio = request.result as AudioFile[];
+      resolve(allAudio.find(a => a.name === name));
+    };
+  });
+}
+
 export async function deleteScript(id: string): Promise<void> {
   const database = await initDB();
   return new Promise((resolve, reject) => {
@@ -168,6 +182,20 @@ export async function getProject(id: string): Promise<Project | undefined> {
     const request = store.get(id);
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve(request.result);
+  });
+}
+
+export async function getProjectByName(name: string): Promise<Project | undefined> {
+  const database = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(["projects"], "readonly");
+    const store = transaction.objectStore("projects");
+    const request = store.getAll();
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const allProjects = request.result as Project[];
+      resolve(allProjects.find(p => p.name === name));
+    };
   });
 }
 
@@ -233,10 +261,51 @@ export async function clearVocabulary(): Promise<void> {
     const transaction = database.transaction(["vocabulary", "processedScripts"], "readwrite");
     const vocabStore = transaction.objectStore("vocabulary");
     const processedStore = transaction.objectStore("processedScripts");
-    
+
     vocabStore.clear();
     processedStore.clear();
-    
+
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+}
+
+export async function deleteVocabularyBySource(scriptId: string): Promise<void> {
+  const database = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(["vocabulary", "processedScripts"], "readwrite");
+    const vocabStore = transaction.objectStore("vocabulary");
+    const processedStore = transaction.objectStore("processedScripts");
+
+    const request = vocabStore.openCursor();
+    request.onsuccess = (event) => {
+      const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+      if (cursor) {
+        const word = cursor.value as VocabularyWord;
+        const sourceIndex = word.sources.findIndex(s => s.scriptId === scriptId);
+
+        if (sourceIndex !== -1) {
+          const removedSource = word.sources[sourceIndex];
+          const updatedSources = [...word.sources];
+          updatedSources.splice(sourceIndex, 1);
+
+          if (updatedSources.length === 0) {
+            cursor.delete();
+          } else {
+            cursor.update({
+              ...word,
+              count: word.count - removedSource.count,
+              sources: updatedSources
+            });
+          }
+        }
+        cursor.continue();
+      } else {
+        // Also delete from processedScripts
+        processedStore.delete(scriptId);
+      }
+    };
+
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error);
   });
@@ -252,13 +321,13 @@ export async function getVocabularyStats(): Promise<{
   return new Promise((resolve, reject) => {
     const transaction = database.transaction(["vocabulary"], "readonly");
     const store = transaction.objectStore("vocabulary");
-    
+
     let totalWords = 0;
     let totalOccurrences = 0;
     const allSources = new Set<string>();
-    
+
     const request = store.openCursor();
-    
+
     request.onerror = () => reject(request.error);
     request.onsuccess = (event) => {
       const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
@@ -289,7 +358,7 @@ export async function getVocabularyPage(
     const transaction = database.transaction(["vocabulary"], "readonly");
     const store = transaction.objectStore("vocabulary");
     const request = store.getAll();
-    
+
     request.onerror = () => reject(request.error);
     request.onsuccess = () => {
       const allWords = request.result as VocabularyWord[];
