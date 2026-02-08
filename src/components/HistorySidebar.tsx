@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { ListMusic, Play, Trash2, Clock, Music, ArrowUpAZ, ArrowDownAZ, ArrowUp, ArrowDown, Star, FolderOpen, RefreshCw, CheckCircle2, AlertCircle, Search, X, ArrowDownWideNarrow, ArrowUpNarrowWide } from "lucide-react";
+import { ListMusic, Play, Trash2, Clock, Music, ArrowUpAZ, ArrowDownAZ, ArrowUp, ArrowDown, Star, FolderOpen, RefreshCw, CheckCircle2, AlertCircle, Search, X, ArrowDownWideNarrow, ArrowUpNarrowWide, Filter, Circle, PlayCircle, Activity } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
   Sheet,
@@ -44,8 +44,8 @@ import { getModifierKey } from "@/hooks/useKeyboardShortcuts";
 import { cn } from "@/lib/utils";
 import { getListeningCount } from "@/lib/db";
 
-type SortOption = "name-desc" | "name-asc" | "date-desc" | "date-asc" | "favorites" | "duration-desc" | "duration-asc";
-type FilterOption = "all" | "favorites";
+type SortOption = "name-desc" | "name-asc" | "listened-desc" | "listened-asc" | "favorites" | "duration-desc" | "duration-asc";
+type FilterOption = "all" | "favorites" | "listened" | "unplayed";
 
 const SORT_STORAGE_KEY = "history-sort";
 const FILTER_STORAGE_KEY = "history-filter";
@@ -124,6 +124,10 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
     // Apply filter
     if (filterBy === "favorites") {
       filtered = filtered.filter((p) => p.isFavorite);
+    } else if (filterBy === "listened") {
+      filtered = filtered.filter((p) => p.audioName && listeningCounts[p.audioName] > 0);
+    } else if (filterBy === "unplayed") {
+      filtered = filtered.filter((p) => !p.audioName || !listeningCounts[p.audioName] || listeningCounts[p.audioName] === 0);
     }
 
     // Apply sort
@@ -140,10 +144,18 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
           return b.name.localeCompare(a.name, undefined, { numeric: true });
         case "name-asc":
           return a.name.localeCompare(b.name, undefined, { numeric: true });
-        case "date-desc":
-          return (b.lastPlayedAt || b.createdAt) - (a.lastPlayedAt || a.createdAt);
-        case "date-asc":
-          return (a.lastPlayedAt || a.createdAt) - (b.lastPlayedAt || b.createdAt);
+        case "listened-desc": {
+          const countA = a.audioName ? listeningCounts[a.audioName] || 0 : 0;
+          const countB = b.audioName ? listeningCounts[b.audioName] || 0 : 0;
+          if (countA !== countB) return countB - countA;
+          return b.createdAt - a.createdAt; // Secondary sort: Newest first
+        }
+        case "listened-asc": {
+          const countA = a.audioName ? listeningCounts[a.audioName] || 0 : 0;
+          const countB = b.audioName ? listeningCounts[b.audioName] || 0 : 0;
+          if (countA !== countB) return countA - countB;
+          return b.createdAt - a.createdAt; // Secondary sort: Newest first
+        }
         case "duration-desc":
           return (b.duration || 0) - (a.duration || 0);
         case "duration-asc":
@@ -155,6 +167,8 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
   }, [projects, sortBy, filterBy, searchQuery]);
 
   const favoriteCount = useMemo(() => projects.filter((p) => p.isFavorite).length, [projects]);
+  const listenedCount = useMemo(() => projects.filter((p) => p.audioName && listeningCounts[p.audioName] > 0).length, [projects, listeningCounts]);
+  const unplayedCount = useMemo(() => projects.filter((p) => !p.audioName || !listeningCounts[p.audioName] || listeningCounts[p.audioName] === 0).length, [projects, listeningCounts]);
 
   const formatDuration = (seconds?: number) => {
     if (seconds === undefined) return "--:--";
@@ -242,11 +256,37 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className={cn("h-8 w-8 text-muted-foreground hover:text-foreground", filterBy !== "all" && "text-primary")}>
+                    <Filter className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleFilterChange("all")} className={filterBy === "all" ? "bg-accent" : ""}>
+                    <ListMusic className="h-4 w-4 mr-2" />
+                    All ({projects.length})
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleFilterChange("favorites")} className={filterBy === "favorites" ? "bg-accent" : ""}>
+                    <Star className="h-4 w-4 mr-2" />
+                    Favorites ({favoriteCount})
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleFilterChange("listened")} className={filterBy === "listened" ? "bg-accent" : ""}>
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Listened ({listenedCount})
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleFilterChange("unplayed")} className={filterBy === "unplayed" ? "bg-accent" : ""}>
+                    <Circle className="h-4 w-4 mr-2" />
+                    Unplayed ({unplayedCount})
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
                     {sortBy === "name-desc" && <ArrowDownAZ className="h-4 w-4" />}
                     {sortBy === "name-asc" && <ArrowUpAZ className="h-4 w-4" />}
-                    {sortBy === "date-desc" && <ArrowDown className="h-4 w-4" />}
-                    {sortBy === "date-asc" && <ArrowUp className="h-4 w-4" />}
+                    {sortBy === "listened-desc" && <ArrowDownWideNarrow className="h-4 w-4" />}
+                    {sortBy === "listened-asc" && <ArrowUpNarrowWide className="h-4 w-4" />}
                     {sortBy === "favorites" && <Star className="h-4 w-4" />}
                     {sortBy === "duration-desc" && <ArrowDownWideNarrow className="h-4 w-4" />}
                     {sortBy === "duration-asc" && <ArrowUpNarrowWide className="h-4 w-4" />}
@@ -266,13 +306,13 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
                     <ArrowUpAZ className="h-4 w-4 mr-2" />
                     Name (A → Z)
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSortChange("date-desc")} className={sortBy === "date-desc" ? "bg-accent" : ""}>
-                    <ArrowDown className="h-4 w-4 mr-2" />
-                    Newest first
+                  <DropdownMenuItem onClick={() => handleSortChange("listened-desc")} className={sortBy === "listened-desc" ? "bg-accent" : ""}>
+                    <ArrowDownWideNarrow className="h-4 w-4 mr-2" />
+                    Most listened
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSortChange("date-asc")} className={sortBy === "date-asc" ? "bg-accent" : ""}>
-                    <ArrowUp className="h-4 w-4 mr-2" />
-                    Oldest first
+                  <DropdownMenuItem onClick={() => handleSortChange("listened-asc")} className={sortBy === "listened-asc" ? "bg-accent" : ""}>
+                    <ArrowUpNarrowWide className="h-4 w-4 mr-2" />
+                    Least listened
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => handleSortChange("duration-desc")} className={sortBy === "duration-desc" ? "bg-accent" : ""}>
@@ -291,19 +331,6 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
             Your saved projects. Click to load.
           </SheetDescription>
         </SheetHeader>
-
-        {/* Filter Tabs */}
-        <Tabs value={filterBy} onValueChange={(v) => handleFilterChange(v as FilterOption)} className="mt-4">
-          <TabsList className="w-full">
-            <TabsTrigger value="all" className="flex-1">
-              All ({projects.length})
-            </TabsTrigger>
-            <TabsTrigger value="favorites" className="flex-1">
-              <Star className="h-3.5 w-3.5 mr-1.5" />
-              Favorites ({favoriteCount})
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
 
         {/* Search Bar */}
         <div className="mt-4 relative group">
@@ -365,10 +392,22 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
                           <Clock className="h-3 w-3" />
                           <span>{formatDuration(project.duration)}</span>
                         </div>
-                        {project.audioName && listeningCounts[project.audioName] > 0 && (
-                          <div className="flex items-center gap-1 text-primary/70">
-                            <CheckCircle2 className="h-3 w-3" />
-                            <span>Listened {listeningCounts[project.audioName]}x</span>
+                        {project.audioName && (
+                          <div className={cn(
+                            "flex items-center gap-1",
+                            listeningCounts[project.audioName] > 0 ? "text-primary/70 font-medium" : "opacity-60 italic"
+                          )}>
+                            {listeningCounts[project.audioName] > 0 ? (
+                              <>
+                                <CheckCircle2 className="h-3 w-3" />
+                                <span>Listened {listeningCounts[project.audioName]}x</span>
+                              </>
+                            ) : (
+                              <>
+                                <PlayCircle className="h-3 w-3" />
+                                <span>Never listened</span>
+                              </>
+                            )}
                           </div>
                         )}
                       </div>
@@ -484,6 +523,6 @@ export function HistorySidebar({ open, onOpenChange, onLoadProject }: HistorySid
           </AlertDialogContent>
         </AlertDialog>
       </SheetContent>
-    </Sheet>
+    </Sheet >
   );
 }
