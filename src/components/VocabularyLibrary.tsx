@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Book, Search, Trash2, ArrowUpDown, Loader2 } from "lucide-react";
+import { Book, Search, Trash2, ArrowUpDown, Loader2, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -63,7 +63,7 @@ function WordCard({ word, onClick }: WordCardProps) {
       <div className="flex items-center justify-between">
         <span className="font-medium text-foreground">{word.word}</span>
         <Badge variant="secondary" className="text-xs">
-          ×{word.count}
+          ×{Number(word.count) || 0}
         </Badge>
       </div>
 
@@ -93,6 +93,7 @@ export function VocabularyLibrary({
     searchQuery,
     setSearchQuery,
     refresh,
+    rebuild,
     loadMore,
     clearAllVocabulary,
   } = useVocabulary();
@@ -175,31 +176,44 @@ export function VocabularyLibrary({
             </Select>
           </div>
 
-          {/* Clear All Button */}
-          {stats.totalUniqueWords > 0 && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" className="w-fit gap-2">
-                  <Trash2 className="h-4 w-4" />
-                  Clear All
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Clear all vocabulary?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete all {stats.totalUniqueWords} words from your vocabulary library. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleClear}>
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => rebuild()}
+              disabled={isLoading}
+            >
+              <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+
+            {stats.totalUniqueWords > 0 && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-fit gap-2">
+                    <Trash2 className="h-4 w-4" />
                     Clear All
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Clear all vocabulary?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete all {stats.totalUniqueWords} words from your vocabulary library. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleClear}>
+                      Clear All
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
         </div>
 
         {/* Word List */}

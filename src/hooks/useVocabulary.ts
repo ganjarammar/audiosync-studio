@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { VocabularyWord } from "@/types/caption";
-import { getAllVocabulary, clearVocabulary, getVocabularyStats, getVocabularyPage } from "@/lib/db";
+import { getAllVocabulary, clearVocabulary, getVocabularyStats, getVocabularyPage, getAllScripts } from "@/lib/db";
+import { processScriptForVocabulary } from "@/lib/vocabularyProcessor";
 
 export interface VocabularyStats {
   totalUniqueWords: number;
@@ -56,7 +57,7 @@ export function useVocabulary() {
   // Load more words (pagination)
   const loadMore = useCallback(async () => {
     if (isLoadingMore || !hasMore || searchQuery) return;
-    
+
     setIsLoadingMore(true);
     try {
       const newWords = await getVocabularyPage(page * PAGE_SIZE, PAGE_SIZE);
@@ -71,7 +72,7 @@ export function useVocabulary() {
   // Load all words for search/sort (cached)
   const loadAllForSearch = useCallback(async () => {
     if (allWordsCache) return allWordsCache;
-    
+
     setIsLoading(true);
     try {
       const allWords = await getAllVocabulary();
@@ -85,7 +86,7 @@ export function useVocabulary() {
   // Handle search query change
   const handleSearchChange = useCallback(async (query: string) => {
     setSearchQuery(query);
-    
+
     if (query) {
       // Load all words for search
       const allWords = await loadAllForSearch();
@@ -105,7 +106,7 @@ export function useVocabulary() {
   // Handle sort change
   const handleSortChange = useCallback(async (newSort: SortOption) => {
     setSortBy(newSort);
-    
+
     if (newSort !== "frequency" || searchQuery) {
       // Need all words for custom sorting
       const allWords = await loadAllForSearch();
@@ -122,11 +123,11 @@ export function useVocabulary() {
               return 0;
           }
         });
-        
+
         const filtered = searchQuery
           ? sorted.filter(w => w.word.toLowerCase().includes(searchQuery.toLowerCase()))
           : sorted;
-        
+
         setWords(filtered);
         setHasMore(false);
       }
@@ -154,6 +155,31 @@ export function useVocabulary() {
     }
   }, []);
 
+  const rebuildVocabulary = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      // 1. Clear everything
+      await clearVocabulary();
+
+      // 2. Reset local state
+      setWords([]);
+      setAllWordsCache(null);
+      setPage(0);
+      setHasMore(true);
+
+      // 3. Get all scripts and re-process
+      const scripts = await getAllScripts();
+      for (const script of scripts) {
+        await processScriptForVocabulary(script);
+      }
+
+      // 4. Reload initial view
+      await loadInitial();
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loadInitial]);
+
   // Get displayed words (already filtered/sorted from state)
   const displayedWords = words;
 
@@ -168,6 +194,7 @@ export function useVocabulary() {
     searchQuery,
     setSearchQuery: handleSearchChange,
     refresh: loadInitial,
+    rebuild: rebuildVocabulary,
     loadMore,
     clearAllVocabulary,
   };

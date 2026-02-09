@@ -249,7 +249,14 @@ export async function getAllVocabulary(): Promise<VocabularyWord[]> {
     const store = transaction.objectStore("vocabulary");
     const request = store.getAll();
     request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      const allWords = request.result as VocabularyWord[];
+      const sanitized = allWords.map(w => ({
+        ...w,
+        count: Number(w.count) || 0
+      }));
+      resolve(sanitized);
+    };
   });
 }
 
@@ -398,10 +405,18 @@ export async function getVocabularyPage(
     request.onerror = () => reject(request.error);
     request.onsuccess = () => {
       const allWords = request.result as VocabularyWord[];
+
+      // Sanitize words (ensure count is a number)
+      const sanitizedWords = allWords.map(w => ({
+        ...w,
+        count: Number(w.count) || 0
+      }));
+
       // Sort by frequency ascending (least first - default sort)
-      allWords.sort((a, b) => (Number(a.count) || 0) - (Number(b.count) || 0));
+      sanitizedWords.sort((a, b) => a.count - b.count);
+
       // Return the requested page
-      resolve(allWords.slice(offset, offset + limit));
+      resolve(sanitizedWords.slice(offset, offset + limit));
     };
   });
 }
