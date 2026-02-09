@@ -18,9 +18,10 @@ function cleanWord(word: string): string {
  * Validates if a word should be included in vocabulary
  * - Must be at least 2 characters
  * - Must not be purely numeric
+ * - Must contain at least one letter (to skip things like "1-2" or symbols)
  */
 function isValidWord(word: string): boolean {
-  return word.length >= 2 && !/^\d+$/.test(word);
+  return word.length >= 2 && !/^\d+$/.test(word) && /[a-z]/.test(word);
 }
 
 /**
@@ -70,9 +71,12 @@ export async function processScriptForVocabulary(
 
     if (existing) {
       // Update existing word - increment count and add source
+      const existingCount = Number(existing.count) || 0;
+      const newCount = Number(count) || 0;
+
       await saveVocabularyWord({
         ...existing,
-        count: existing.count + count,
+        count: existingCount + newCount,
         lastSeenAt: Date.now(),
         sources: [...existing.sources, source],
       });

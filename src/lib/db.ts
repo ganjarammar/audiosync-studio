@@ -323,9 +323,11 @@ export async function deleteVocabularyBySource(scriptId: string): Promise<void> 
           if (updatedSources.length === 0) {
             cursor.delete();
           } else {
+            const currentTotalCount = Number(word.count) || 0;
+            const removedCount = Number(removedSource.count) || 0;
             cursor.update({
               ...word,
-              count: word.count - removedSource.count,
+              count: Math.max(0, currentTotalCount - removedCount),
               sources: updatedSources
             });
           }
@@ -365,13 +367,16 @@ export async function getVocabularyStats(): Promise<{
       if (cursor) {
         const word = cursor.value as VocabularyWord;
         totalWords++;
-        totalOccurrences += word.count;
-        word.sources.forEach(s => allSources.add(s.scriptId));
+        const wordCount = Number(word.count) || 0;
+        totalOccurrences += wordCount;
+        word.sources.forEach(s => {
+          if (s.scriptId) allSources.add(s.scriptId);
+        });
         cursor.continue();
       } else {
         resolve({
           totalWords,
-          totalOccurrences,
+          totalOccurrences: isNaN(totalOccurrences) ? 0 : totalOccurrences,
           totalSources: allSources.size,
         });
       }
@@ -394,7 +399,7 @@ export async function getVocabularyPage(
     request.onsuccess = () => {
       const allWords = request.result as VocabularyWord[];
       // Sort by frequency ascending (least first - default sort)
-      allWords.sort((a, b) => a.count - b.count);
+      allWords.sort((a, b) => (Number(a.count) || 0) - (Number(b.count) || 0));
       // Return the requested page
       resolve(allWords.slice(offset, offset + limit));
     };
